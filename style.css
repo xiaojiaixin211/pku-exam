@@ -32,7 +32,7 @@ body {
   flex-direction: column;
 }
 
-/* 顶部导航与 Header */
+/* 顶部 Header */
 header {
   background: linear-gradient(
     135deg,
@@ -40,20 +40,20 @@ header {
     var(--pku-dark-red) 100%
   );
   color: #fff;
-  padding: 24px 20px;
+  padding: 26px 20px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 header h1 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
 
 header p {
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.9;
   color: #ffe6e8;
 }
@@ -103,7 +103,7 @@ header p {
 .question-card {
   background: var(--card-bg);
   border-radius: 12px;
-  padding: 24px 28px;
+  padding: 28px;
   box-shadow: var(--shadow);
   border: 1px solid rgba(0, 0, 0, 0.04);
   margin-bottom: 20px;
@@ -113,31 +113,32 @@ header p {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
-  font-size: 13px;
+  margin-bottom: 16px;
+  font-size: 14px;
   color: var(--text-sub);
   border-bottom: 1px dashed var(--border-color);
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .badge-info {
   background: #fff1f0;
   color: var(--pku-red);
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-weight: 600;
 }
 
 .question-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
   color: #1a1a1a;
   line-height: 1.6;
+  margin-bottom: 20px;
 }
 
 /* 答题区域 */
 .answer-section {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .answer-label {
@@ -150,7 +151,7 @@ header p {
 
 .answer-input {
   width: 100%;
-  min-height: 160px;
+  min-height: 180px;
   padding: 14px 16px;
   border-radius: 8px;
   border: 1.5px solid var(--border-color);
@@ -171,7 +172,7 @@ header p {
   box-shadow: 0 0 0 3px rgba(130, 0, 20, 0.1);
 }
 
-/* 按钮操作条 */
+/* 操作按钮 */
 .btn-group {
   display: flex;
   gap: 12px;
@@ -179,7 +180,7 @@ header p {
 }
 
 .btn {
-  padding: 10px 22px;
+  padding: 12px 24px;
   border-radius: 8px;
   font-size: 15px;
   font-weight: 600;
@@ -217,7 +218,7 @@ header p {
   cursor: not-allowed;
 }
 
-/* AI 批改结果卡片 */
+/* AI 批改结果面板 */
 .result-card {
   margin-top: 24px;
   background: #fdfefe;
@@ -252,6 +253,11 @@ header p {
   margin-top: 10px;
   font-size: 14px;
   line-height: 1.7;
+}
+
+/* 隐藏类 */
+.hidden {
+  display: none !important;
 }
 
 /* 页脚 */
