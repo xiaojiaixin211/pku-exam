@@ -1,71 +1,265 @@
-/* ==========================================
-   北京大学文学考研 AI 刷题系统 - 主题配色方案
-   ========================================== */
+/* =========================================================
+   北京大学文学考研 AI 刷题系统 - 官方典雅主题
+   ========================================================= */
 
 :root {
-  /* 1. 核心品牌色 */
-  --primary-color: #8b0000; /* 北大标准红 (用于 Header、主按钮、选中状态) */
-  --primary-hover: #a61c1c; /* 悬停亮红 (用于按钮 Hover 效果) */
-  --primary-active: #660000; /* 点击深红 (用于按钮 Active 效果) */
-
-  /* 2. 点缀与高亮色 */
-  --accent-gold: #c59b27; /* 匾额金 (用于徽章、核心采分点高亮、边框点缀) */
-  --accent-gold-light: #fff8e7; /* 浅金背景 (用于提示框、高亮卡片背景) */
-
-  /* 3. 中性色与背景 */
-  --bg-main: #fdfbfb; /* 页面背景 (极浅暖红调白色，比纯白更高级) */
-  --bg-card: #ffffff; /* 卡片与容器背景 */
-  --text-main: #2c2c2c; /* 正文主文字颜色 */
-  --text-muted: #666666; /* 次要文字与说明颜色 */
-  --border-color: #ead8d8; /* 带有微红调的浅灰色边框 */
-
-  /* 4. 反馈与状态色 */
-  --success-color: #2e7d32; /* 批改正确/高分 (深绿) */
-  --warning-color: #e65100; /* 部分采分 (橙色) */
+  --pku-red: #820014;
+  --pku-dark-red: #5c000e;
+  --pku-gold: #c5a059;
+  --bg-color: #f6f8fa;
+  --card-bg: #ffffff;
+  --text-main: #24292f;
+  --text-sub: #57606a;
+  --border-color: #e1e4e8;
+  --shadow: 0 8px 24px rgba(130, 0, 20, 0.08);
 }
 
-/* ==========================================
-   基础样式应用示例 (根据需要替换对应选择器)
-   ========================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-/* 1. 整体页面背景与字体 */
 body {
-  background-color: var(--bg-main);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部导航与 Header */
+header {
+  background: linear-gradient(
+    135deg,
+    var(--pku-red) 0%,
+    var(--pku-dark-red) 100%
+  );
+  color: #fff;
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+header p {
+  font-size: 13px;
+  opacity: 0.9;
+  color: #ffe6e8;
+}
+
+/* 主内容容器 */
+.main-container {
+  max-width: 900px;
+  width: 92%;
+  margin: 24px auto;
+  flex: 1;
+}
+
+/* 科目分类筛选 Tab */
+.tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.tab-btn {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  border-color: var(--pku-red);
+  color: var(--pku-red);
+}
+
+.tab-btn.active {
+  background: var(--pku-red);
+  color: #fff;
+  border-color: var(--pku-red);
+  box-shadow: 0 4px 10px rgba(130, 0, 20, 0.25);
+}
+
+/* 题目卡片 */
+.question-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.question-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text-sub);
+  border-bottom: 1px dashed var(--border-color);
+  padding-bottom: 10px;
+}
+
+.badge-info {
+  background: #fff1f0;
+  color: var(--pku-red);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.question-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.6;
+}
+
+/* 答题区域 */
+.answer-section {
+  margin-top: 20px;
+}
+
+.answer-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
   color: var(--text-main);
 }
 
-/* 2. 顶部 Header / 导航栏 */
-header,
-.navbar {
-  background-color: var(--primary-color);
-  color: #ffffff;
-  border-bottom: 3px solid var(--accent-gold); /* 带有金边点缀 */
+.answer-input {
+  width: 100%;
+  min-height: 160px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: inherit;
+  resize: vertical;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  background: #fafbfc;
 }
 
-/* 3. 核心主按钮 */
-.btn-primary,
-button.submit-btn {
-  background-color: var(--primary-color);
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
+.answer-input:focus {
+  outline: none;
+  border-color: var(--pku-red);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(130, 0, 20, 0.1);
 }
 
-.btn-primary:hover,
-button.submit-btn:hover {
-  background-color: var(--primary-hover);
+/* 按钮操作条 */
+.btn-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 4. AI 批改结果卡片与采分点高亮 */
-.score-badge {
-  background-color: var(--accent-gold-light);
-  color: #8b5a00;
-  border: 1px solid var(--accent-gold);
+.btn-primary {
+  background: var(--pku-red);
+  color: #fff;
+  flex: 2;
 }
 
-.analysis-card {
-  border-left: 4px solid var(--primary-color);
-  background-color: var(--bg-card);
+.btn-primary:hover {
+  background: var(--pku-dark-red);
+  box-shadow: 0 4px 12px rgba(130, 0, 20, 0.3);
+}
+
+.btn-secondary {
+  background: #eaeef2;
+  color: var(--text-main);
+  flex: 1;
+}
+
+.btn-secondary:hover {
+  background: #dfe3e8;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* AI 批改结果卡片 */
+.result-card {
+  margin-top: 24px;
+  background: #fdfefe;
+  border: 1.5px solid #d0e2ff;
+  border-radius: 12px;
+  padding: 24px;
+  display: none;
+  box-shadow: 0 8px 20px rgba(0, 75, 180, 0.06);
+}
+
+.score-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.score-num {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--pku-red);
+}
+
+.feedback-box,
+.analysis-box {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 页脚 */
+footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: #8c959f;
+  border-top: 1px solid var(--border-color);
+  background: #fff;
 }
