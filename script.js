@@ -1890,7 +1890,7 @@
         state.base = [];
         state.freq = [];
         mergeLibrary();
-        $("#loading").classList.add("hidden");
+        $("#loading")?.classList.add("hidden");
         showLoadBanner();
         render();
       });
