@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>北京大学文学考研真题刷题与 AI 智能批改系统</title>
+
+    <!-- 引入北大标准校徽作为浏览器标签页图标 (Favicon) -->
+    <link
+      rel="icon"
+      href="https://www.pku.edu.cn/favicon.ico"
+      type="image/x-icon"
+    />
+
+    <!-- 引入样式表 -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- 1. 顶部导航与品牌栏 -->
+    <header class="site-header">
+      <div class="header-container">
+        <div class="brand">
+          <h1 class="site-title">北京大学文学考研 AI 刷题系统</h1>
+          <span class="site-subtitle"
+            >基于 DeepSeek 引擎 · 适配 622 中国文学史 / 847 中国文学基础</span
+          >
+        </div>
+        <div class="header-tag">
+          <span class="badge">PKU Literature AI</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. 主体内容区 -->
+    <main class="main-container">
+      <!-- 科目与筛选区 -->
+      <section class="filter-section">
+        <div class="subject-tabs">
+          <button class="tab-btn active" data-subject="all">全部真题</button>
+          <button class="tab-btn" data-subject="622">622 中国文学史</button>
+          <button class="tab-btn" data-subject="847">847 中国文学基础</button>
+        </div>
+      </section>
+
+      <!-- 题目展示区 -->
+      <section class="question-card" id="questionCard">
+        <div class="question-header">
+          <span class="question-id" id="questionId">加载中...</span>
+          <span class="question-score" id="maxScore">满分：-- 分</span>
+        </div>
+        <h2 class="question-title" id="questionTitle">
+          正在获取北京大学考研真题...
+        </h2>
+      </section>
+
+      <!-- 答题区 -->
+      <section class="answer-section">
+        <label for="userAnswer" class="section-label"
+          >📝 请输入您的答题内容（建议按照采分点分条论述）：</label
+        >
+        <textarea
+          id="userAnswer"
+          class="answer-input"
+          rows="8"
+          placeholder="例如：
+1. 核心观点阐述...
+2. 结合文本分析（引用具体名篇、文献）...
+3. 历史地位与学术影响..."
+        ></textarea>
+
+        <div class="action-bar">
+          <button id="submitBtn" class="btn-submit">🤖 提交 AI 智能批改</button>
+          <button id="nextBtn" class="btn-next">下一题 ➔</button>
+        </div>
+      </section>
+
+      <!-- AI 批改结果展示区（默认隐藏/动态渲染） -->
+      <section class="result-section" id="resultSection" style="display: none">
+        <div class="result-card">
+          <h3 class="result-title">🎯 AI 智能批改报告</h3>
+
+          <div class="score-display">
+            <span>预测得分：</span>
+            <strong id="userScore" class="score-num">0</strong> /
+            <span id="totalScore">0</span> 分
+          </div>
+
+          <div class="feedback-block">
+            <h4>💡 详细评语与采分点对照：</h4>
+            <div id="aiFeedback" class="feedback-content"></div>
+          </div>
+
+          <div class="analysis-block">
+            <h4>📚 标准参考解析与核心采分点：</h4>
+            <div id="standardAnalysis" class="analysis-content"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 3. 页脚信息 -->
+    <footer class="site-footer">
+      <p>© 北京大学文学考研 AI 刷题系统 | 仅供考研备考学术交流使用</p>
+    </footer>
+
+    <!-- 引入交互脚本 -->
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,71 @@
+/* ==========================================
+   北京大学文学考研 AI 刷题系统 - 主题配色方案
+   ========================================== */
+
+:root {
+  /* 1. 核心品牌色 */
+  --primary-color: #8b0000; /* 北大标准红 (用于 Header、主按钮、选中状态) */
+  --primary-hover: #a61c1c; /* 悬停亮红 (用于按钮 Hover 效果) */
+  --primary-active: #660000; /* 点击深红 (用于按钮 Active 效果) */
+
+  /* 2. 点缀与高亮色 */
+  --accent-gold: #c59b27; /* 匾额金 (用于徽章、核心采分点高亮、边框点缀) */
+  --accent-gold-light: #fff8e7; /* 浅金背景 (用于提示框、高亮卡片背景) */
+
+  /* 3. 中性色与背景 */
+  --bg-main: #fdfbfb; /* 页面背景 (极浅暖红调白色，比纯白更高级) */
+  --bg-card: #ffffff; /* 卡片与容器背景 */
+  --text-main: #2c2c2c; /* 正文主文字颜色 */
+  --text-muted: #666666; /* 次要文字与说明颜色 */
+  --border-color: #ead8d8; /* 带有微红调的浅灰色边框 */
+
+  /* 4. 反馈与状态色 */
+  --success-color: #2e7d32; /* 批改正确/高分 (深绿) */
+  --warning-color: #e65100; /* 部分采分 (橙色) */
+}
+
+/* ==========================================
+   基础样式应用示例 (根据需要替换对应选择器)
+   ========================================== */
+
+/* 1. 整体页面背景与字体 */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* 2. 顶部 Header / 导航栏 */
+header,
+.navbar {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-bottom: 3px solid var(--accent-gold); /* 带有金边点缀 */
+}
+
+/* 3. 核心主按钮 */
+.btn-primary,
+button.submit-btn {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover,
+button.submit-btn:hover {
+  background-color: var(--primary-hover);
+  cursor: pointer;
+}
+
+/* 4. AI 批改结果卡片与采分点高亮 */
+.score-badge {
+  background-color: var(--accent-gold-light);
+  color: #8b5a00;
+  border: 1px solid var(--accent-gold);
+}
+
+.analysis-card {
+  border-left: 4px solid var(--primary-color);
+  background-color: var(--bg-card);
+}
