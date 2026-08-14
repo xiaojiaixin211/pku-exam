@@ -1937,7 +1937,7 @@
     try {
       // 主接口：腾讯云云函数；备用接口：Cloudflare Worker（主接口故障时自动切换）
       var PRIMARY_URL =
-        "https://my-exam-app-d2gzree0ob314c962-1426932475.ap-shanghai.app.tcloudbaseapp.com/ai-grader";
+        "[https://1426932475-m4no4tyy6o.ap-shanghai.tencentscf.com](https://1426932475-m4no4tyy6o.ap-shanghai.tencentscf.com)";
       var FALLBACK_URL = "https://haida-ai-grader.xiaojiaixin211.workers.dev/";
       var API_URLS = [PRIMARY_URL, FALLBACK_URL];
 
