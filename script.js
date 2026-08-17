@@ -62,32 +62,49 @@
     toast._timer = setTimeout(() => el.classList.remove("show"), 2400);
   }
 
+  // ---------- 强健的 LocalStorage 读写（带类型保障） ----------
   function loadStorageSet(key) {
     try {
-      return new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+      const val = JSON.parse(localStorage.getItem(key) || "[]");
+      return new Set(Array.isArray(val) ? val : []);
     } catch (e) {
       return new Set();
     }
   }
 
   function saveStorageSet(key, setObj) {
-    localStorage.setItem(key, JSON.stringify(Array.from(setObj)));
+    localStorage.setItem(key, JSON.stringify(Array.from(setObj || [])));
   }
 
   function loadStorageObj(key) {
     try {
-      return JSON.parse(localStorage.getItem(key) || "{}");
+      const val = JSON.parse(localStorage.getItem(key) || "{}");
+      return val && typeof val === "object" && !Array.isArray(val) ? val : {};
     } catch (e) {
       return {};
     }
   }
 
   function saveStorageObj(key, obj) {
-    localStorage.setItem(key, JSON.stringify(obj));
+    localStorage.setItem(key, JSON.stringify(obj || {}));
+  }
+
+  function loadStorageArray(key) {
+    try {
+      const val = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(val) ? val : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveStorageArray(key, arr) {
+    localStorage.setItem(key, JSON.stringify(Array.isArray(arr) ? arr : []));
   }
 
   // ---------- 题目实体规范化 ----------
   function normalizeQuestion(raw, idx) {
+    if (!raw || typeof raw !== "object") return null;
     const qText = (raw.question || raw.title || "").trim();
     const qAnswer = (raw.answer || raw.analysis || "").trim();
     const qYear = Number(raw.year) || 0;
@@ -114,8 +131,12 @@
 
   function mergeAllQuestions() {
     const map = new Map();
-    state.baseQuestions.forEach((q) => map.set(q.id, q));
-    state.customQuestions.forEach((q) => map.set(q.id, q));
+    state.baseQuestions.forEach((q) => {
+      if (q) map.set(q.id, q);
+    });
+    state.customQuestions.forEach((q) => {
+      if (q) map.set(q.id, q);
+    });
     state.allQuestions = Array.from(map.values()).sort((a, b) => {
       return (
         b.year - a.year ||
@@ -169,6 +190,7 @@
 
   // ---------- 题目卡片 HTML 生成器 ----------
   function renderQuestionCard(q, isReciteMode = false) {
+    if (!q) return "";
     const isWrong = state.wrongIds.has(q.id);
     const isFav = state.favIds.has(q.id);
     const savedDraft = state.userAnswers[q.id] || "";
@@ -240,7 +262,8 @@
     document.querySelectorAll(".nav a").forEach((a) => {
       a.classList.toggle("active", a.dataset.target === viewName);
     });
-    $("#main-nav").classList.remove("open");
+    const mainNav = $("#main-nav");
+    if (mainNav) mainNav.classList.remove("open");
 
     updateBadges();
 
@@ -426,7 +449,6 @@
             ${filteredList
               .map((q, idx) => {
                 const isCur = idx === state.paperIndex;
-                const hasDraft = Boolean(state.userAnswers[q.id]);
                 const isWrong = state.wrongIds.has(q.id);
                 return `
                 <button class="ac-cell ${isCur ? "cur" : ""} ${isWrong ? "marked" : ""}" data-act="jump" data-idx="${idx}" title="${q.subject} - ${q.type}">
@@ -567,14 +589,12 @@
     const aiCfg = loadStorageObj(STORAGE_KEYS.aiConfig);
 
     try {
-      // 若用户配置了远程 API 则请求远程，否则使用高性能本地启发式采分引擎
       let gradeResult = null;
       if (aiCfg.endpoint) {
         gradeResult = await callRemoteAIGrader(aiCfg, q, answerText);
       } else {
         gradeResult = localHeuristicGrade(q, answerText);
       }
-
       renderGradeResult(resultBox, gradeResult, q.score || 10);
     } catch (err) {
       console.warn("AI 批改失败，降级为本地分析", err);
@@ -586,12 +606,10 @@
     }
   }
 
-  // 本地智能启发式评分算法（内置分词与关键要点提取，确保离线即刻可用）
   function localHeuristicGrade(q, userAns) {
     const maxScore = q.score > 0 ? q.score : 10;
     const answerRaw = q.answer || "";
 
-    // 提取核心关键词与标签
     const targetKeywords = new Set([
       ...q.tags,
       ...(answerRaw.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
@@ -608,7 +626,6 @@
       }
     });
 
-    // 计算得分比率（字数长度系数 + 核心采分点命中率）
     const lengthScoreRatio = Math.min(1, userAns.length / 180);
     const hitRatio =
       targetKeywords.size > 0
@@ -641,7 +658,6 @@
     };
   }
 
-  // 远程 API 批改接口适配 (兼容 Dify / 云函数 / OpenAI 规范)
   async function callRemoteAIGrader(cfg, q, userAns) {
     const res = await fetch(cfg.endpoint, {
       method: "POST",
@@ -735,7 +751,6 @@
 
   // ---------- 事件绑定 ----------
   function bindGlobalEvents() {
-    // 导航切换
     const navToggleBtn = $("#nav-toggle-btn");
     const mainNav = $("#main-nav");
     if (navToggleBtn && mainNav) {
@@ -744,18 +759,15 @@
       );
     }
 
-    // 委托全局点击
     document.addEventListener("click", (e) => {
       const target = e.target;
 
-      // 1. 导航
       const navA = target.closest(".nav a");
       if (navA && navA.dataset.target) {
         switchView(navA.dataset.target);
         return;
       }
 
-      // 2. 快捷跳转
       const goBtn = target.closest("[data-go]");
       if (goBtn) {
         switchView(goBtn.dataset.go);
@@ -779,7 +791,6 @@
         return;
       }
 
-      // 3. 题目卡片交互
       const actBtn = target.closest("[data-action]");
       if (actBtn) {
         const action = actBtn.dataset.action;
@@ -827,7 +838,6 @@
         return;
       }
 
-      // 4. 套卷翻页
       const navAct = target.closest("[data-act]");
       if (navAct) {
         const act = navAct.dataset.act;
@@ -852,7 +862,6 @@
         return;
       }
 
-      // 5. 套卷模式切换
       const modeBtn = target.closest("[data-mode]");
       if (modeBtn) {
         state.paperMode = modeBtn.dataset.mode;
@@ -860,7 +869,6 @@
         return;
       }
 
-      // 6. 分类筛选
       const filterSubj = target.closest("[data-filter-subj]");
       if (filterSubj) {
         state.catSubject = filterSubj.dataset.filterSubj;
@@ -876,7 +884,6 @@
       }
     });
 
-    // 监听作答输入实时保存
     document.addEventListener("input", (e) => {
       if (e.target && e.target.classList.contains("card-answer-input")) {
         const card = e.target.closest(".q-card");
@@ -887,7 +894,6 @@
       }
     });
 
-    // 下拉框选择
     document.addEventListener("change", (e) => {
       if (e.target.id === "paper-year-select") {
         state.paperYear = Number(e.target.value);
@@ -901,7 +907,6 @@
       }
     });
 
-    // 搜索按钮与回车
     const searchBtn = $("#searchBtn");
     const searchInput = $("#searchInput");
     if (searchBtn) searchBtn.addEventListener("click", executeSearch);
@@ -911,7 +916,6 @@
       });
     }
 
-    // 设置项：AI 配置与数据导出
     const saveAiBtn = $("#save-ai-cfg-btn");
     const resetAiBtn = $("#reset-ai-cfg-btn");
     if (saveAiBtn) {
@@ -998,7 +1002,6 @@
       });
     }
 
-    // 题库文件上传与拖拽
     const dropZone = $("#drop-zone");
     const fileInput = $("#file-input");
     if (fileInput) {
@@ -1034,15 +1037,16 @@
         try {
           const parsed = JSON.parse(reader.result);
           const list = Array.isArray(parsed) ? parsed : parsed.questions || [];
-          const normalized = list.map((q, idx) => normalizeQuestion(q, idx));
+          const normalized = list
+            .map((q, idx) => normalizeQuestion(q, idx))
+            .filter(Boolean);
           state.customQuestions.push(...normalized);
-          localStorage.setItem(
-            STORAGE_KEYS.customLib,
-            JSON.stringify(state.customQuestions),
-          );
+          saveStorageArray(STORAGE_KEYS.customLib, state.customQuestions);
           mergeAllQuestions();
-          $("#upload-status").innerHTML =
-            `<div class="ok-box">成功导入 <b>${normalized.length}</b> 道题目！当前总题库共 <b>${state.allQuestions.length}</b> 题。</div>`;
+          const statusEl = $("#upload-status");
+          if (statusEl) {
+            statusEl.innerHTML = `<div class="ok-box">成功导入 <b>${normalized.length}</b> 道题目！当前总题库共 <b>${state.allQuestions.length}</b> 题。</div>`;
+          }
           toast(`题库更新，共 ${state.allQuestions.length} 题`);
           switchView(state.view);
         } catch (err) {
@@ -1059,13 +1063,16 @@
     state.favIds = loadStorageSet(STORAGE_KEYS.favorites);
     state.userAnswers = loadStorageObj(STORAGE_KEYS.userAnswers);
     state.userNotes = loadStorageObj(STORAGE_KEYS.userNotes);
-    state.customQuestions = (loadStorageObj(STORAGE_KEYS.customLib) || []).map(
-      normalizeQuestion,
-    );
+
+    // 强制保障 customQuestions 为 Array
+    const customList = loadStorageArray(STORAGE_KEYS.customLib);
+    state.customQuestions = customList
+      .map((q, idx) => normalizeQuestion(q, idx))
+      .filter(Boolean);
 
     bindGlobalEvents();
 
-    // 优先尝试读取 cleaned_questions.json，若失败则尝试 questions.json
+    // 优先尝试读取 cleaned_questions.json，失败则回退到 questions.json
     const candidateFiles = ["cleaned_questions.json", "questions.json"];
     let loadedData = null;
 
@@ -1073,13 +1080,14 @@
       try {
         const res = await fetch(filename);
         if (res.ok) {
-          const text = await res.text();
-          const json = JSON.parse(text);
+          const json = await res.json();
           loadedData = Array.isArray(json) ? json : json.questions || [];
-          console.log(
-            `成功加载数据源: ${filename}，共 ${loadedData.length} 题`,
-          );
-          break;
+          if (loadedData.length > 0) {
+            console.log(
+              `成功加载真题数据源: ${filename}，共 ${loadedData.length} 题`,
+            );
+            break;
+          }
         }
       } catch (e) {
         // 继续尝试下一个候选文件
@@ -1090,11 +1098,11 @@
     if (loadingEl) loadingEl.classList.add("hidden");
 
     if (loadedData && loadedData.length) {
-      state.baseQuestions = loadedData.map((q, idx) =>
-        normalizeQuestion(q, idx),
-      );
+      state.baseQuestions = loadedData
+        .map((q, idx) => normalizeQuestion(q, idx))
+        .filter(Boolean);
     } else {
-      console.warn("未通过 fetch 加载到题库，显示本地选择提示");
+      console.warn("未通过 fetch 读取到题库，展示本地选择提示");
       const banner = $("#load-banner");
       if (banner) {
         banner.classList.remove("hidden");
