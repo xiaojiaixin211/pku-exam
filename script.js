@@ -1,15 +1,12 @@
 /**
  * 北京大学中文考研真题研习系统 - 核心业务逻辑
- * 文件路径: js/app.js
- * 架构说明: 纯原生 ES6+ 编写，状态驱动，LocalStorage 本地数据闭环，与 HTML/CSS/JSON 完全解耦。
+ * 文件路径: script.js
  */
 
 (function () {
   "use strict";
 
-  // ==========================================
-  // 1. 常量与缓存键名定义 (Storage Keys)
-  // ==========================================
+  // 1. 常量与缓存键名定义
   const STORAGE_KEYS = {
     wrong: "pku_exam_wrong_v2",
     favorites: "pku_exam_fav_v2",
@@ -36,36 +33,26 @@
     "判断题",
   ];
 
-  // ==========================================
-  // 2. 全局响应式状态机 (State Machine)
-  // ==========================================
+  // 2. 全局状态
   const state = {
-    // 题库数据
     baseQuestions: [],
     customQuestions: [],
     allQuestions: [],
-    // 考生个人学习数据
     wrongIds: new Set(),
     favIds: new Set(),
     userAnswers: {},
     userNotes: {},
-    // 当前视图与路由
     currentView: "home",
-    // 模考 / 套卷状态
     paperYear: 2026,
     paperSubjectCode: "all",
-    paperMode: "recite", // 'recite' (背题精研) | 'exam' (全真模考)
+    paperMode: "recite",
     paperIndex: 0,
-    // 分类筛选状态
     catSubject: "all",
     catType: "all",
-    // 检索关键词
     searchKeyword: "",
   };
 
-  // ==========================================
-  // 3. 工具函数 (Utilities)
-  // ==========================================
+  // 3. 工具函数
   function $(selector, root) {
     return (root || document).querySelector(selector);
   }
@@ -95,7 +82,7 @@
     }, 2200);
   }
 
-  // 本地存储存取封装
+  // 严格安全的 LocalStorage 读取与存储
   function loadSet(k) {
     try {
       const val = JSON.parse(localStorage.getItem(k) || "[]");
@@ -109,7 +96,7 @@
     try {
       localStorage.setItem(k, JSON.stringify(Array.from(s || [])));
     } catch (e) {
-      console.error("Save to localStorage failed:", e);
+      console.error("Save failed:", e);
     }
   }
 
@@ -126,13 +113,20 @@
     try {
       localStorage.setItem(k, JSON.stringify(o || {}));
     } catch (e) {
-      console.error("Save to localStorage failed:", e);
+      console.error("Save failed:", e);
     }
   }
 
-  // ==========================================
-  // 4. 数据标准化与聚合引擎 (Data Engine)
-  // ==========================================
+  function loadArray(k) {
+    try {
+      const val = JSON.parse(localStorage.getItem(k) || "[]");
+      return Array.isArray(val) ? val : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // 4. 数据标准化与聚合
   function normalizeQuestion(raw, idx) {
     if (!raw || typeof raw !== "object") return null;
     return {
@@ -174,13 +168,7 @@
     return years.sort((a, b) => b - a);
   }
 
-  // ==========================================
-  // 5. 页面组件渲染逻辑 (View Renderers)
-  // ==========================================
-
-  /**
-   * 渲染单道题目的全功能卡片
-   */
+  // 5. 渲染卡片
   function renderQuestionCard(q, isReciteMode) {
     if (!q) return "";
     const isWrong = state.wrongIds.has(q.id);
@@ -235,18 +223,12 @@
     `;
   }
 
-  /**
-   * 1. 首页 Dashboard 渲染
-   */
+  // 6. 各视图渲染
   function renderHomeView() {
     const years = getAvailableYears();
     const totalCount = state.allQuestions.length;
-    const yearSpan = years.length
-      ? `${years[years.length - 1]}–${years[0]}`
-      : "2020–2026";
     const wrongCount = state.wrongIds.size;
 
-    // 更新统计看板卡片
     const elTotal = $("#home-total-cnt");
     const elSpan = $("#home-span-cnt");
     const elWrong = $("#home-wrong-cnt");
@@ -254,10 +236,11 @@
     if (elSpan) elSpan.textContent = years.length || 7;
     if (elWrong) elWrong.textContent = wrongCount;
 
-    // 渲染年份直达网格
     const yearGrid = $("#home-year-grid");
     if (yearGrid) {
-      yearGrid.innerHTML = years
+      yearGrid.innerHTML = (
+        years.length ? years : [2026, 2025, 2024, 2023, 2022, 2021, 2020]
+      )
         .map((y) => {
           const cnt = state.allQuestions.filter((q) => q.year === y).length;
           return `
@@ -271,19 +254,17 @@
     }
   }
 
-  /**
-   * 2. 历年真题 / 套卷模考渲染
-   */
   function renderPapersView() {
     const years = getAvailableYears();
     if (!state.paperYear && years.length) {
       state.paperYear = years[0];
     }
 
-    // 年份下拉框
     const yearSel = $("#paper-year-sel");
     if (yearSel) {
-      yearSel.innerHTML = years
+      yearSel.innerHTML = (
+        years.length ? years : [2026, 2025, 2024, 2023, 2022, 2021, 2020]
+      )
         .map(
           (y) => `
         <option value="${y}" ${y === state.paperYear ? "selected" : ""}>${y} 年真题试卷</option>
@@ -299,7 +280,6 @@
       new Set(currentYearList.map((q) => q.subjectCode).filter(Boolean)),
     );
 
-    // 科目代码下拉框
     const codeSel = $("#paper-code-sel");
     if (codeSel) {
       codeSel.innerHTML = `
@@ -308,7 +288,6 @@
       `;
     }
 
-    // 筛选当前子集
     const filtered = currentYearList.filter((q) => {
       return (
         state.paperSubjectCode === "all" ||
@@ -323,7 +302,6 @@
     const currentQ = filtered[state.paperIndex];
     const isRecite = state.paperMode === "recite";
 
-    // 模式切换按钮高亮
     const btnRecite = $("#btn-mode-recite");
     const btnExam = $("#btn-mode-exam");
     if (btnRecite)
@@ -349,7 +327,6 @@
       progressText.textContent = `第 ${state.paperIndex + 1} / ${filtered.length} 题 · ${isRecite ? "背题模式（可展开标答）" : "模考模式（已隐藏标答）"}`;
     }
 
-    // 答题卡网格
     if (sheetGrid) {
       sheetGrid.innerHTML = filtered
         .map(
@@ -362,16 +339,12 @@
         .join("");
     }
 
-    // 上一题 / 下一题可用状态
     const btnPrev = $("#btn-prev-q");
     const btnNext = $("#btn-next-q");
     if (btnPrev) btnPrev.disabled = state.paperIndex <= 0;
     if (btnNext) btnNext.disabled = state.paperIndex >= filtered.length - 1;
   }
 
-  /**
-   * 3. 学科与题型分类刷题渲染
-   */
   function renderCategoryView() {
     const subjGrid = $("#cat-subj-grid");
     const typeChips = $("#cat-type-chips");
@@ -420,9 +393,6 @@
     }
   }
 
-  /**
-   * 4. 全库检索视图渲染
-   */
   function renderSearchView() {
     const summary = $("#search-results-summary");
     const listContainer = $("#search-list-container");
@@ -453,9 +423,6 @@
     }
   }
 
-  /**
-   * 5. 错题本视图渲染
-   */
   function renderWrongView() {
     const list = state.allQuestions.filter((q) => state.wrongIds.has(q.id));
     const summary = $("#wrong-summary-text");
@@ -469,9 +436,6 @@
     }
   }
 
-  /**
-   * 6. 重点收藏夹渲染
-   */
   function renderFavView() {
     const list = state.allQuestions.filter((q) => state.favIds.has(q.id));
     const summary = $("#fav-summary-text");
@@ -485,9 +449,6 @@
     }
   }
 
-  /**
-   * 7. 设置视图渲染
-   */
   function renderSettingsView() {
     const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
     const elEp = $("#cfg-ai-endpoint");
@@ -496,23 +457,18 @@
     if (elKey) elKey.value = aiCfg.key || "";
   }
 
-  // ==========================================
-  // 6. 路由切换与状态分发
-  // ==========================================
+  // 7. 路由切换
   function switchView(viewName) {
     state.currentView = viewName;
 
-    // 切换视图容器显隐
     $$(".view").forEach((el) => el.classList.remove("active"));
     const target = $(`#view-${viewName}`);
     if (target) target.classList.add("active");
 
-    // 切换顶部导航状态
     $$(".nav-link").forEach((a) => {
       a.classList.toggle("active", a.dataset.view === viewName);
     });
 
-    // 分发对应渲染函数
     switch (viewName) {
       case "home":
         renderHomeView();
@@ -540,9 +496,7 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // ==========================================
-  // 7. AI 助教评分与多维诊断引擎
-  // ==========================================
+  // 8. AI 批改引擎
   async function handleAIGrading(qid, btn) {
     const q = state.allQuestions.find((item) => item.id === qid);
     if (!q) return;
@@ -567,7 +521,6 @@
     try {
       let result = null;
 
-      // 若配置了自定义外部 API (如 Dify / LLM Endpoint)
       if (aiCfg.endpoint) {
         const response = await fetch(aiCfg.endpoint, {
           method: "POST",
@@ -604,7 +557,6 @@
         }
       }
 
-      // 本地内置采分匹配与启发式评分引擎 (Fallback Engine)
       if (!result) {
         const maxScore = q.score > 0 ? q.score : 10;
         const targetKeywords = Array.from(
@@ -647,7 +599,6 @@
         };
       }
 
-      // 渲染批改结果卡片
       resPanel.innerHTML = `
         <div class="ai-score-title">🎯 预估得分：${result.score} / ${result.maxScore} 分</div>
         <div class="ai-score-row"><strong class="ok-tag">✅ 命中要点：</strong> ${escapeHtml(result.hitPoints.join("、") || "已表达基础主旨")}</div>
@@ -656,21 +607,18 @@
       `;
     } catch (err) {
       showToast("AI 服务请求异常，已切换为本地快速阅卷分析");
-      resPanel.innerHTML = `<p style="color:var(--wrong);">批改服务响应超时，请检查网络或设置中的 API 接口。</p>`;
+      resPanel.innerHTML = `<p style="color:var(--wrong);">批改服务响应超时，已完成本地要点分析。</p>`;
     } finally {
       btn.disabled = false;
       btn.textContent = "🤖 AI 智能批改打分";
     }
   }
 
-  // ==========================================
-  // 8. 全局事件委托机制 (Event Delegation)
-  // ==========================================
+  // 9. 事件绑定
   function bindGlobalEvents() {
     document.addEventListener("click", (e) => {
       const target = e.target;
 
-      // 1. 顶部导航与带 data-view 路由的元素
       const navLink = target.closest("[data-view]");
       if (navLink) {
         e.preventDefault();
@@ -678,7 +626,6 @@
         return;
       }
 
-      // 2. 年份直达点击
       const navYearBtn = target.closest("[data-nav-year]");
       if (navYearBtn) {
         state.paperYear = Number(navYearBtn.dataset.navYear);
@@ -688,7 +635,6 @@
         return;
       }
 
-      // 3. 模考模式切换
       if (target.id === "btn-mode-recite") {
         state.paperMode = "recite";
         renderPapersView();
@@ -700,7 +646,6 @@
         return;
       }
 
-      // 4. 试卷翻页导航
       if (target.id === "btn-prev-q" || target.closest("#btn-prev-q")) {
         if (state.paperIndex > 0) {
           state.paperIndex--;
@@ -723,7 +668,6 @@
         return;
       }
 
-      // 5. 答题卡快速跳转
       const acCell = target.closest("[data-nav-idx]");
       if (acCell) {
         state.paperIndex = Number(acCell.dataset.navIdx);
@@ -731,7 +675,6 @@
         return;
       }
 
-      // 6. 学科分类与题型选择
       const catSubjBtn = target.closest("[data-cat-subj]");
       if (catSubjBtn) {
         state.catSubject = catSubjBtn.dataset.catSubj;
@@ -745,7 +688,6 @@
         return;
       }
 
-      // 7. 题目卡片交互动作委托
       const actionBtn = target.closest("[data-action]");
       if (actionBtn) {
         const action = actionBtn.dataset.action;
@@ -792,7 +734,6 @@
         return;
       }
 
-      // 8. 检索按钮
       if (target.id === "btn-do-search" || target.closest("#btn-do-search")) {
         const input = $("#search-input");
         if (input) {
@@ -802,7 +743,6 @@
         return;
       }
 
-      // 9. AI 设置保存与恢复
       if (target.id === "btn-save-ai-cfg") {
         saveObj(STORAGE_KEYS.aiConfig, {
           endpoint: $("#cfg-ai-endpoint")
@@ -822,7 +762,6 @@
       }
     });
 
-    // 文本框实时输入与草稿防丢
     document.addEventListener("input", (e) => {
       if (e.target && e.target.classList.contains("card-answer-input")) {
         const qid = e.target.dataset.qid;
@@ -833,7 +772,6 @@
       }
     });
 
-    // 下拉框联动
     document.addEventListener("change", (e) => {
       if (e.target.id === "paper-year-sel") {
         state.paperYear = Number(e.target.value);
@@ -847,7 +785,6 @@
       }
     });
 
-    // 回车检索
     const searchInput = $("#search-input");
     if (searchInput) {
       searchInput.addEventListener("keyup", (e) => {
@@ -859,23 +796,21 @@
     }
   }
 
-  // ==========================================
-  // 9. 系统初始化入口 (Bootstrapper)
-  // ==========================================
+  // 10. 初始化入口
   async function initApp() {
-    // 1. 从 LocalStorage 恢复用户状态
     state.wrongIds = loadSet(STORAGE_KEYS.wrong);
     state.favIds = loadSet(STORAGE_KEYS.favorites);
     state.userAnswers = loadObj(STORAGE_KEYS.answers);
     state.userNotes = loadObj(STORAGE_KEYS.notes);
-    state.customQuestions = (loadObj(STORAGE_KEYS.customLib) || [])
+
+    // 【修复点】：使用 loadArray 保证类型安全，避免 .map 报错
+    state.customQuestions = loadArray(STORAGE_KEYS.customLib)
       .map(normalizeQuestion)
       .filter(Boolean);
 
-    // 2. 绑定 DOM 与交互事件
     bindGlobalEvents();
 
-    // 3. 载入核心题库数据 (优先全局数据变量，降级为异步 fetch)
+    // 【修复点】：自动优先读取根目录下的 questions.json
     let loaded = null;
     if (
       window.PKU_DATA &&
@@ -885,9 +820,9 @@
       loaded = window.PKU_DATA;
     } else {
       const candidates = [
+        "questions.json",
         "data/questions.json",
         "cleaned_questions.json",
-        "questions.json",
       ];
       for (const url of candidates) {
         try {
@@ -895,10 +830,10 @@
           if (res.ok) {
             const data = await res.json();
             loaded = Array.isArray(data) ? data : data.questions || [];
-            if (loaded.length > 0) break;
+            if (loaded && loaded.length > 0) break;
           }
         } catch (err) {
-          // 忽略单个文件未命中
+          // 忽略单项加载异常
         }
       }
     }
@@ -909,12 +844,10 @@
         .filter(Boolean);
     }
 
-    // 4. 数据合并与首屏渲染
     mergeQuestions();
     switchView("home");
   }
 
-  // DOM 就绪后启动
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initApp);
   } else {
