@@ -1,38 +1,82 @@
+/**
+ * 北京大学中文考研真题研习系统 - 核心业务逻辑
+ * 文件路径: js/app.js
+ * 架构说明: 纯原生 ES6+ 编写，状态驱动，LocalStorage 本地数据闭环，与 HTML/CSS/JSON 完全解耦。
+ */
+
 (function () {
   "use strict";
 
+  // ==========================================
+  // 1. 常量与缓存键名定义 (Storage Keys)
+  // ==========================================
   const STORAGE_KEYS = {
-    wrong: "pku_wrong_questions_v1",
-    favorites: "pku_favorites_v1",
-    userAnswers: "pku_user_answers_v1",
-    userNotes: "pku_user_notes_v1",
-    customLib: "pku_custom_library_v1",
-    aiConfig: "pku_ai_config_v1",
+    wrong: "pku_exam_wrong_v2",
+    favorites: "pku_exam_fav_v2",
+    answers: "pku_exam_answers_v2",
+    notes: "pku_exam_notes_v2",
+    customLib: "pku_exam_custom_lib_v2",
+    aiConfig: "pku_exam_ai_cfg_v2",
   };
 
+  const DEFAULT_SUBJECTS = [
+    "文艺学",
+    "中国古代文学",
+    "中国现当代文学",
+    "中外文学基础",
+    "比较文学与世界文学",
+  ];
+
+  const DEFAULT_TYPES = [
+    "名词解释",
+    "简答题",
+    "论述题",
+    "材料分析题",
+    "填空题",
+    "判断题",
+  ];
+
+  // ==========================================
+  // 2. 全局响应式状态机 (State Machine)
+  // ==========================================
   const state = {
+    // 题库数据
     baseQuestions: [],
     customQuestions: [],
     allQuestions: [],
+    // 考生个人学习数据
     wrongIds: new Set(),
     favIds: new Set(),
     userAnswers: {},
     userNotes: {},
-    view: "home",
-    catSubject: "all",
-    catType: "all",
+    // 当前视图与路由
+    currentView: "home",
+    // 模考 / 套卷状态
     paperYear: 2026,
     paperSubjectCode: "all",
-    paperMode: "recite",
+    paperMode: "recite", // 'recite' (背题精研) | 'exam' (全真模考)
     paperIndex: 0,
+    // 分类筛选状态
+    catSubject: "all",
+    catType: "all",
+    // 检索关键词
+    searchKeyword: "",
   };
 
-  function $(s, r) {
-    return (r || document).querySelector(s);
+  // ==========================================
+  // 3. 工具函数 (Utilities)
+  // ==========================================
+  function $(selector, root) {
+    return (root || document).querySelector(selector);
+  }
+
+  function $$(selector, root) {
+    return Array.from((root || document).querySelectorAll(selector));
   }
 
   function escapeHtml(str) {
-    return String(str == null ? "" : str)
+    if (str == null) return "";
+    return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -40,16 +84,19 @@
       .replace(/'/g, "&#39;");
   }
 
-  function toast(msg) {
+  function showToast(msg) {
     const el = $("#toast");
     if (!el) return;
     el.textContent = msg;
     el.classList.add("show");
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => el.classList.remove("show"), 2400);
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => {
+      el.classList.remove("show");
+    }, 2200);
   }
 
-  function loadStorageSet(k) {
+  // 本地存储存取封装
+  function loadSet(k) {
     try {
       const val = JSON.parse(localStorage.getItem(k) || "[]");
       return new Set(Array.isArray(val) ? val : []);
@@ -57,10 +104,16 @@
       return new Set();
     }
   }
-  function saveStorageSet(k, s) {
-    localStorage.setItem(k, JSON.stringify(Array.from(s || [])));
+
+  function saveSet(k, s) {
+    try {
+      localStorage.setItem(k, JSON.stringify(Array.from(s || [])));
+    } catch (e) {
+      console.error("Save to localStorage failed:", e);
+    }
   }
-  function loadStorageObj(k) {
+
+  function loadObj(k) {
     try {
       const val = JSON.parse(localStorage.getItem(k) || "{}");
       return val && typeof val === "object" && !Array.isArray(val) ? val : {};
@@ -68,21 +121,18 @@
       return {};
     }
   }
-  function saveStorageObj(k, o) {
-    localStorage.setItem(k, JSON.stringify(o || {}));
-  }
-  function loadStorageArray(k) {
+
+  function saveObj(k, o) {
     try {
-      const val = JSON.parse(localStorage.getItem(k) || "[]");
-      return Array.isArray(val) ? val : [];
+      localStorage.setItem(k, JSON.stringify(o || {}));
     } catch (e) {
-      return [];
+      console.error("Save to localStorage failed:", e);
     }
   }
-  function saveStorageArray(k, a) {
-    localStorage.setItem(k, JSON.stringify(Array.isArray(a) ? a : []));
-  }
 
+  // ==========================================
+  // 4. 数据标准化与聚合引擎 (Data Engine)
+  // ==========================================
   function normalizeQuestion(raw, idx) {
     if (!raw || typeof raw !== "object") return null;
     return {
@@ -100,100 +150,369 @@
     };
   }
 
-  function mergeAllQuestions() {
+  function mergeQuestions() {
     const map = new Map();
     state.baseQuestions.forEach((q) => {
-      if (q) map.set(q.id, q);
+      if (q && q.id) map.set(q.id, q);
     });
     state.customQuestions.forEach((q) => {
-      if (q) map.set(q.id, q);
+      if (q && q.id) map.set(q.id, q);
     });
-    state.allQuestions = Array.from(map.values()).sort(
-      (a, b) =>
-        b.year - a.year ||
-        (b.subjectCode || "").localeCompare(a.subjectCode || "") ||
-        a.id.localeCompare(b.id),
-    );
+
+    state.allQuestions = Array.from(map.values()).sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      if (a.subjectCode !== b.subjectCode)
+        return (a.subjectCode || "").localeCompare(b.subjectCode || "");
+      return a.id.localeCompare(b.id);
+    });
   }
 
   function getAvailableYears() {
-    return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
-  }
-  function getAvailableSubjects() {
-    return [
-      "文艺学",
-      "中国古代文学",
-      "中国现当代文学",
-      "中外文学基础",
-      "比较文学与世界文学",
-    ];
-  }
-  function getAvailableTypes() {
-    return ["名词解释", "简答题", "论述题", "材料分析题", "填空题", "判断题"];
+    const years = Array.from(
+      new Set(state.allQuestions.map((q) => q.year).filter((y) => y > 0)),
+    );
+    return years.sort((a, b) => b - a);
   }
 
+  // ==========================================
+  // 5. 页面组件渲染逻辑 (View Renderers)
+  // ==========================================
+
+  /**
+   * 渲染单道题目的全功能卡片
+   */
   function renderQuestionCard(q, isReciteMode) {
     if (!q) return "";
     const isWrong = state.wrongIds.has(q.id);
     const isFav = state.favIds.has(q.id);
-    const savedDraft = state.userAnswers[q.id] || "";
+    const savedAnswer = state.userAnswers[q.id] || "";
     const tagsHtml =
       q.tags && q.tags.length
-        ? `<div class="q-tags">${q.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>`
+        ? `<div class="q-tags">${q.tags.map((t) => `<span class="tag">#${escapeHtml(t)}</span>`).join("")}</div>`
         : "";
 
     return `
       <div class="q-card" data-id="${escapeHtml(q.id)}">
         <div class="q-meta">
-          <span class="badge badge-year">${escapeHtml(q.year ? q.year + "年" : "真题")}</span>
+          <span class="badge badge-year">${escapeHtml(q.year ? q.year + "年真题" : "自命题")}</span>
           <span class="badge badge-subject">${escapeHtml(q.subject)}</span>
           ${q.subjectCode ? `<span class="badge badge-code">${escapeHtml(q.subjectCode)}</span>` : ""}
           <span class="badge badge-type">${escapeHtml(q.type)}</span>
           ${q.score > 0 ? `<span class="badge badge-score">${q.score} 分</span>` : ""}
         </div>
+        
         <div class="q-title">${escapeHtml(q.title)}</div>
-        <div class="q-analysis ${isReciteMode ? "show" : ""}">
-          <div class="q-analysis-label">📖 核心采分点与答题框架</div>
-          <div class="q-analysis-body">${escapeHtml(q.answer || "暂无标答，可直接使用 AI 评分分析")}</div>
+
+        <div class="q-analysis ${isReciteMode ? "show" : ""}" id="analysis-${escapeHtml(q.id)}">
+          <div class="q-analysis-label">📖 北大标准考点与答题框架</div>
+          <div class="q-analysis-body">${escapeHtml(q.answer || "暂无详细标答要点")}</div>
         </div>
+
         ${tagsHtml}
+
         <div class="q-actions">
-          <button class="btn btn-ghost" data-action="toggle-answer">${isReciteMode ? "隐藏采分点" : "查看采分点"}</button>
-          <button class="btn ${isWrong ? "btn-wrong-active" : "btn-wrong"}" data-action="toggle-wrong">${isWrong ? "✓ 已在错题本" : "加入错题本"}</button>
-          <button class="btn ${isFav ? "btn-fav-active" : "btn-fav"}" data-action="toggle-fav">${isFav ? "⭐ 已收藏" : "⭐ 收藏"}</button>
+          <button class="btn btn-ghost" data-action="toggle-analysis" data-qid="${escapeHtml(q.id)}">
+            ${isReciteMode ? "隐藏采分点" : "查看采分点"}
+          </button>
+          <button class="btn ${isWrong ? "btn-wrong-active" : "btn-wrong"}" data-action="toggle-wrong" data-qid="${escapeHtml(q.id)}">
+            ${isWrong ? "✓ 已在错题本" : "加入错题本"}
+          </button>
+          <button class="btn ${isFav ? "btn-fav-active" : "btn-fav"}" data-action="toggle-fav" data-qid="${escapeHtml(q.id)}">
+            ${isFav ? "⭐ 已收藏考点" : "⭐ 收藏考点"}
+          </button>
         </div>
+
         <div class="ai-grade-container">
-          <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px; color:#5C554F;">✍️ 考生作答 / 论述要点：</label>
-          <textarea class="card-answer-input" rows="4" placeholder="在此输入你的答题内容、论述提纲或关键词...">${escapeHtml(savedDraft)}</textarea>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-            <button class="btn btn-primary" data-action="ai-grade">🤖 AI 智能批改打分</button>
-            <span class="muted small">作答实时自动保存</span>
+          <label class="answer-label">✍️ 考生作答 / 论述提纲：</label>
+          <textarea class="card-answer-input" rows="4" placeholder="在此输入你的论述提纲、核心名词界定或原典论据..." data-qid="${escapeHtml(q.id)}">${escapeHtml(savedAnswer)}</textarea>
+          <div class="ai-ctrl-bar">
+            <button class="btn btn-primary" data-action="ai-grade" data-qid="${escapeHtml(q.id)}">🤖 AI 智能批改打分</button>
+            <span class="muted-tip">作答内容实时保存于本地</span>
           </div>
-          <div class="ai-result-box" style="display:none;"></div>
+          <div class="ai-result-box" id="ai-res-${escapeHtml(q.id)}" style="display:none;"></div>
         </div>
       </div>
     `;
   }
 
+  /**
+   * 1. 首页 Dashboard 渲染
+   */
+  function renderHomeView() {
+    const years = getAvailableYears();
+    const totalCount = state.allQuestions.length;
+    const yearSpan = years.length
+      ? `${years[years.length - 1]}–${years[0]}`
+      : "2020–2026";
+    const wrongCount = state.wrongIds.size;
+
+    // 更新统计看板卡片
+    const elTotal = $("#home-total-cnt");
+    const elSpan = $("#home-span-cnt");
+    const elWrong = $("#home-wrong-cnt");
+    if (elTotal) elTotal.textContent = totalCount || 281;
+    if (elSpan) elSpan.textContent = years.length || 7;
+    if (elWrong) elWrong.textContent = wrongCount;
+
+    // 渲染年份直达网格
+    const yearGrid = $("#home-year-grid");
+    if (yearGrid) {
+      yearGrid.innerHTML = years
+        .map((y) => {
+          const cnt = state.allQuestions.filter((q) => q.year === y).length;
+          return `
+          <div class="year-btn ${y === state.paperYear ? "active" : ""}" data-nav-year="${y}">
+            <div class="year-title">${y} 年</div>
+            <div class="year-cnt">${cnt} 道大题</div>
+          </div>
+        `;
+        })
+        .join("");
+    }
+  }
+
+  /**
+   * 2. 历年真题 / 套卷模考渲染
+   */
+  function renderPapersView() {
+    const years = getAvailableYears();
+    if (!state.paperYear && years.length) {
+      state.paperYear = years[0];
+    }
+
+    // 年份下拉框
+    const yearSel = $("#paper-year-sel");
+    if (yearSel) {
+      yearSel.innerHTML = years
+        .map(
+          (y) => `
+        <option value="${y}" ${y === state.paperYear ? "selected" : ""}>${y} 年真题试卷</option>
+      `,
+        )
+        .join("");
+    }
+
+    const currentYearList = state.allQuestions.filter(
+      (q) => q.year === state.paperYear,
+    );
+    const codes = Array.from(
+      new Set(currentYearList.map((q) => q.subjectCode).filter(Boolean)),
+    );
+
+    // 科目代码下拉框
+    const codeSel = $("#paper-code-sel");
+    if (codeSel) {
+      codeSel.innerHTML = `
+        <option value="all">全部专业科目</option>
+        ${codes.map((c) => `<option value="${c}" ${c === state.paperSubjectCode ? "selected" : ""}>${c}</option>`).join("")}
+      `;
+    }
+
+    // 筛选当前子集
+    const filtered = currentYearList.filter((q) => {
+      return (
+        state.paperSubjectCode === "all" ||
+        q.subjectCode === state.paperSubjectCode
+      );
+    });
+
+    if (state.paperIndex >= filtered.length) {
+      state.paperIndex = 0;
+    }
+
+    const currentQ = filtered[state.paperIndex];
+    const isRecite = state.paperMode === "recite";
+
+    // 模式切换按钮高亮
+    const btnRecite = $("#btn-mode-recite");
+    const btnExam = $("#btn-mode-exam");
+    if (btnRecite)
+      btnRecite.className = isRecite ? "btn btn-primary" : "btn btn-ghost";
+    if (btnExam)
+      btnExam.className = !isRecite ? "btn btn-primary" : "btn btn-ghost";
+
+    const qContainer = $("#paper-question-container");
+    const sheetGrid = $("#paper-sheet-grid");
+    const progressText = $("#paper-progress-text");
+
+    if (!currentQ) {
+      if (qContainer)
+        qContainer.innerHTML = `<div class="empty-box"><p>当前年份或科目下暂无题目</p></div>`;
+      if (sheetGrid) sheetGrid.innerHTML = "";
+      if (progressText) progressText.textContent = "暂无题目";
+      return;
+    }
+
+    if (qContainer)
+      qContainer.innerHTML = renderQuestionCard(currentQ, isRecite);
+    if (progressText) {
+      progressText.textContent = `第 ${state.paperIndex + 1} / ${filtered.length} 题 · ${isRecite ? "背题模式（可展开标答）" : "模考模式（已隐藏标答）"}`;
+    }
+
+    // 答题卡网格
+    if (sheetGrid) {
+      sheetGrid.innerHTML = filtered
+        .map(
+          (q, idx) => `
+        <button class="ac-cell ${idx === state.paperIndex ? "cur" : ""} ${state.wrongIds.has(q.id) ? "marked" : ""}" data-nav-idx="${idx}">
+          ${idx + 1}
+        </button>
+      `,
+        )
+        .join("");
+    }
+
+    // 上一题 / 下一题可用状态
+    const btnPrev = $("#btn-prev-q");
+    const btnNext = $("#btn-next-q");
+    if (btnPrev) btnPrev.disabled = state.paperIndex <= 0;
+    if (btnNext) btnNext.disabled = state.paperIndex >= filtered.length - 1;
+  }
+
+  /**
+   * 3. 学科与题型分类刷题渲染
+   */
+  function renderCategoryView() {
+    const subjGrid = $("#cat-subj-grid");
+    const typeChips = $("#cat-type-chips");
+    const listContainer = $("#cat-list-container");
+
+    if (subjGrid) {
+      subjGrid.innerHTML = `
+        <div class="subj-card ${state.catSubject === "all" ? "active" : ""}" data-cat-subj="all">
+          <strong class="sc-name">全部学科</strong>
+          <span class="sc-cnt">${state.allQuestions.length} 题</span>
+        </div>
+        ${DEFAULT_SUBJECTS.map((s) => {
+          const cnt = state.allQuestions.filter((q) => q.subject === s).length;
+          return `
+            <div class="subj-card ${state.catSubject === s ? "active" : ""}" data-cat-subj="${escapeHtml(s)}">
+              <strong class="sc-name">${escapeHtml(s)}</strong>
+              <span class="sc-cnt">${cnt} 题</span>
+            </div>
+          `;
+        }).join("")}
+      `;
+    }
+
+    if (typeChips) {
+      typeChips.innerHTML = `
+        <span class="type-chip ${state.catType === "all" ? "active" : ""}" data-cat-type="all">全部题型</span>
+        ${DEFAULT_TYPES.map(
+          (t) => `
+          <span class="type-chip ${state.catType === t ? "active" : ""}" data-cat-type="${escapeHtml(t)}">${escapeHtml(t)}</span>
+        `,
+        ).join("")}
+      `;
+    }
+
+    const filtered = state.allQuestions.filter((q) => {
+      const matchSubj =
+        state.catSubject === "all" || q.subject === state.catSubject;
+      const matchType = state.catType === "all" || q.type === state.catType;
+      return matchSubj && matchType;
+    });
+
+    if (listContainer) {
+      listContainer.innerHTML = filtered.length
+        ? filtered.map((q) => renderQuestionCard(q, false)).join("")
+        : `<div class="empty-box"><p>没有找到符合当前学科与题型筛选条件的题目</p></div>`;
+    }
+  }
+
+  /**
+   * 4. 全库检索视图渲染
+   */
+  function renderSearchView() {
+    const summary = $("#search-results-summary");
+    const listContainer = $("#search-list-container");
+    const kw = state.searchKeyword.trim().toLowerCase();
+
+    if (!kw) {
+      if (summary) summary.textContent = "请输入考点、人物、原典或关键词检索";
+      if (listContainer) listContainer.innerHTML = "";
+      return;
+    }
+
+    const res = state.allQuestions.filter((q) => {
+      return (
+        q.title.toLowerCase().includes(kw) ||
+        q.answer.toLowerCase().includes(kw) ||
+        q.subject.toLowerCase().includes(kw) ||
+        (q.tags && q.tags.some((t) => t.toLowerCase().includes(kw)))
+      );
+    });
+
+    if (summary) {
+      summary.innerHTML = `搜索 “<b>${escapeHtml(kw)}</b>” 共检索出 <b>${res.length}</b> 道北大真题：`;
+    }
+    if (listContainer) {
+      listContainer.innerHTML = res.length
+        ? res.map((q) => renderQuestionCard(q, false)).join("")
+        : `<div class="empty-box"><p>未检索到包含 “${escapeHtml(kw)}” 的相关考题</p></div>`;
+    }
+  }
+
+  /**
+   * 5. 错题本视图渲染
+   */
+  function renderWrongView() {
+    const list = state.allQuestions.filter((q) => state.wrongIds.has(q.id));
+    const summary = $("#wrong-summary-text");
+    const container = $("#wrong-list-container");
+
+    if (summary) summary.textContent = `共收录 ${list.length} 道待攻克错题`;
+    if (container) {
+      container.innerHTML = list.length
+        ? list.map((q) => renderQuestionCard(q, false)).join("")
+        : `<div class="empty-box"><p>错题本暂为空。做题时点击题目卡片上的“加入错题本”即可收录。</p></div>`;
+    }
+  }
+
+  /**
+   * 6. 重点收藏夹渲染
+   */
+  function renderFavView() {
+    const list = state.allQuestions.filter((q) => state.favIds.has(q.id));
+    const summary = $("#fav-summary-text");
+    const container = $("#fav-list-container");
+
+    if (summary) summary.textContent = `共收藏 ${list.length} 个重点核心大题`;
+    if (container) {
+      container.innerHTML = list.length
+        ? list.map((q) => renderQuestionCard(q, true)).join("")
+        : `<div class="empty-box"><p>收藏夹暂为空。点击题目卡片上的“⭐ 收藏考点”即可收录。</p></div>`;
+    }
+  }
+
+  /**
+   * 7. 设置视图渲染
+   */
+  function renderSettingsView() {
+    const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
+    const elEp = $("#cfg-ai-endpoint");
+    const elKey = $("#cfg-ai-key");
+    if (elEp) elEp.value = aiCfg.endpoint || "";
+    if (elKey) elKey.value = aiCfg.key || "";
+  }
+
+  // ==========================================
+  // 6. 路由切换与状态分发
+  // ==========================================
   function switchView(viewName) {
-    state.view = viewName;
-    document
-      .querySelectorAll(".view")
-      .forEach((el) => el.classList.remove("active"));
+    state.currentView = viewName;
+
+    // 切换视图容器显隐
+    $$(".view").forEach((el) => el.classList.remove("active"));
     const target = $(`#view-${viewName}`);
     if (target) target.classList.add("active");
 
-    document.querySelectorAll(".nav a").forEach((a) => {
-      a.classList.toggle("active", a.dataset.target === viewName);
+    // 切换顶部导航状态
+    $$(".nav-link").forEach((a) => {
+      a.classList.toggle("active", a.dataset.view === viewName);
     });
-    const mainNav = $("#main-nav");
-    if (mainNav) mainNav.classList.remove("open");
 
-    const wb = $("#nav-wrong-badge");
-    const fb = $("#nav-fav-badge");
-    if (wb) wb.textContent = state.wrongIds.size || "";
-    if (fb) fb.textContent = state.favIds.size || "";
-
+    // 分发对应渲染函数
     switch (viewName) {
       case "home":
         renderHomeView();
@@ -204,322 +523,53 @@
       case "category":
         renderCategoryView();
         break;
-      case "wrong":
-        renderWrongListView();
+      case "search":
+        renderSearchView();
         break;
-      case "favorites":
-        renderFavListView();
+      case "wrong":
+        renderWrongView();
+        break;
+      case "fav":
+        renderFavView();
         break;
       case "settings":
         renderSettingsView();
         break;
     }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // ---------- 1. 首页美学看板渲染 ----------
-  function renderHomeView() {
-    const years = getAvailableYears();
-    const count2026 =
-      state.allQuestions.filter((q) => q.year === 2026).length || 52;
-    const count2025 =
-      state.allQuestions.filter((q) => q.year === 2025).length || 53;
-    const count2024 =
-      state.allQuestions.filter((q) => q.year === 2024).length || 70;
-    const count2023 =
-      state.allQuestions.filter((q) => q.year === 2023).length || 44;
-    const count2022 =
-      state.allQuestions.filter((q) => q.year === 2022).length || 32;
-    const count2021 =
-      state.allQuestions.filter((q) => q.year === 2021).length || 22;
-    const count2020 =
-      state.allQuestions.filter((q) => q.year === 2020).length || 11;
-    const yearCounts = {
-      2026: count2026,
-      2025: count2025,
-      2024: count2024,
-      2023: count2023,
-      2022: count2022,
-      2021: count2021,
-      2020: count2020,
-    };
-
-    let html = `
-      <section class="hero-banner">
-        <div class="hero-header">
-          <div class="hero-tagline">🏛️ 北京大学中国语言文学系 · 硕士研究生入学考试</div>
-          <h2 class="hero-title">北京大学中文考研真题研习系统</h2>
-          <p class="hero-desc">
-            收录 2020 – 2026 历年全真试卷 · 文艺学 / 古代文学 / 现当代文学 / 中外文学基础 / 比较文学
-          </p>
-        </div>
-
-        <div class="hero-stats-grid">
-          <div class="stat-card">
-            <div class="stat-number">281</div>
-            <div class="stat-label">题库收录总量</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">7</div>
-            <div class="stat-label">真题年份跨度</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">5</div>
-            <div class="stat-label">覆盖学科专业</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">${state.wrongIds.size}</div>
-            <div class="stat-label">待攻克错题</div>
-          </div>
-        </div>
-      </section>
-
-      <h3 class="section-title">核心备考研习通道</h3>
-      <div class="portals-grid">
-        <div class="portal-card" data-go="papers">
-          <div>
-            <div class="portal-icon">📝</div>
-            <div class="portal-name">历年套卷全真模考</div>
-            <div class="portal-desc">高度还原考场答题卡、限时计时与全套真题交卷测评。</div>
-          </div>
-        </div>
-        <div class="portal-card" data-go="category">
-          <div>
-            <div class="portal-icon">📂</div>
-            <div class="portal-name">五大学科专项刷题</div>
-            <div class="portal-desc">按文艺学、古代文学、现当代文学、中外文基、比较文学深度专练。</div>
-          </div>
-        </div>
-        <div class="portal-card" data-go="search">
-          <div>
-            <div class="portal-icon">🔍</div>
-            <div class="portal-name">题库知识点速查</div>
-            <div class="portal-desc">名家概念、文论术语、古代原典名句与标答采分点秒级全文检索。</div>
-          </div>
-        </div>
-        <div class="portal-card" data-go="wrong">
-          <div>
-            <div class="portal-icon">📕</div>
-            <div class="portal-name">重点错题复习</div>
-            <div class="portal-desc">自动归集薄弱主观题与未掌握考点，支持个人答题反思笔记沉淀。</div>
-          </div>
-        </div>
-      </div>
-
-      <h3 class="section-title">历年真题套卷直达</h3>
-      <div class="year-nav-wrap">
-        <div class="year-grid" id="year-grid-container">
-          ${years
-            .map(
-              (y) => `
-            <div class="year-btn ${y === state.paperYear ? "active" : ""}" data-go-year="${y}">
-              <div class="year-title">${y} 年</div>
-              <div class="year-badge">${y === 2026 ? "最新真题" : "真题套卷"} · ${yearCounts[y]} 题</div>
-            </div>
-          `,
-            )
-            .join("")}
-        </div>
-        <div class="year-preview-box">
-          <span id="preview-text">当前已选择 <b>${state.paperYear} 年</b> 北京大学中文系真题套卷（包含名解、简答、论述与材料分析题）</span>
-          <button class="btn-start-exam" data-go="papers">进入套卷研习 →</button>
-        </div>
-      </div>
-    `;
-
-    $("#view-home").innerHTML = html;
-  }
-
-  // ---------- 2. 历年真题 / 套卷模考渲染 ----------
-  function renderPapersView() {
-    const years = getAvailableYears();
-    if (!state.paperYear) state.paperYear = 2026;
-
-    const currentYearList = state.allQuestions.filter(
-      (q) => q.year === state.paperYear,
-    );
-    const codes = Array.from(
-      new Set(currentYearList.map((q) => q.subjectCode).filter(Boolean)),
-    );
-
-    let filteredList = currentYearList;
-    if (state.paperSubjectCode !== "all") {
-      filteredList = currentYearList.filter(
-        (q) => q.subjectCode === state.paperSubjectCode,
-      );
-    }
-
-    if (state.paperIndex >= filteredList.length) state.paperIndex = 0;
-    const currentQ = filteredList[state.paperIndex];
-    const isRecite = state.paperMode === "recite";
-    const progressPct = filteredList.length
-      ? (((state.paperIndex + 1) / filteredList.length) * 100).toFixed(1)
-      : 0;
-
-    let html = `
-      <div class="panel paper-controls">
-        <div class="ctrl-row">
-          <label>年份：</label>
-          <select id="paper-year-select">
-            ${years.map((y) => `<option value="${y}" ${y === state.paperYear ? "selected" : ""}>${y} 年真题</option>`).join("")}
-          </select>
-          ${
-            codes.length
-              ? `
-            <label style="margin-left:10px;">科目代码：</label>
-            <select id="paper-code-select">
-              <option value="all" ${state.paperSubjectCode === "all" ? "selected" : ""}>全部专业科目</option>
-              ${codes.map((c) => `<option value="${c}" ${c === state.paperSubjectCode ? "selected" : ""}>${c}</option>`).join("")}
-            </select>
-          `
-              : ""
-          }
-        </div>
-        <div class="mode-toggle">
-          <button class="mode-btn ${isRecite ? "active" : ""}" data-mode="recite">背题精研模式</button>
-          <button class="mode-btn ${!isRecite ? "active" : ""}" data-mode="mock">全真模考模式</button>
-        </div>
-      </div>
-    `;
-
-    if (!filteredList.length) {
-      html += `<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">该年份或科目下暂无题目</p></div>`;
-      $("#view-papers").innerHTML = html;
-      return;
-    }
-
-    html += `
-      <div class="paper-progress">
-        <div class="pp-bar"><div class="pp-fill" style="width:${progressPct}%"></div></div>
-        <div class="pp-text">第 <b>${state.paperIndex + 1}</b> / ${filteredList.length} 题 · ${isRecite ? "📖 背题模式（采分点可随时展开/收起）" : "⏱️ 模考模式（答案默认隐藏，专注作答）"}</div>
-      </div>
-
-      <div class="card-wrap">${renderQuestionCard(currentQ, isRecite)}</div>
-
-      <div class="paper-nav">
-        <button class="btn btn-primary" data-act="prev" ${state.paperIndex <= 0 ? "disabled" : ""}>上一题</button>
-        <button class="btn btn-primary" data-act="next" ${state.paperIndex >= filteredList.length - 1 ? "disabled" : ""}>下一题</button>
-      </div>
-
-      <div class="panel answer-card">
-        <details open>
-          <summary>📑 试卷答题卡与快速跳转 (${filteredList.length} 题)</summary>
-          <div class="ac-grid">
-            ${filteredList
-              .map(
-                (q, idx) => `
-              <button class="ac-cell ${idx === state.paperIndex ? "cur" : ""} ${state.wrongIds.has(q.id) ? "marked" : ""}" data-act="jump" data-idx="${idx}">
-                ${idx + 1}
-              </button>
-            `,
-              )
-              .join("")}
-          </div>
-        </details>
-      </div>
-    `;
-    $("#view-papers").innerHTML = html;
-  }
-
-  // ---------- 3. 分类刷题视图 ----------
-  function renderCategoryView() {
-    const subjects = getAvailableSubjects();
-    const types = getAvailableTypes();
-
-    const filtered = state.allQuestions.filter((q) => {
-      const matchSubj =
-        state.catSubject === "all" || q.subject === state.catSubject;
-      const matchType = state.catType === "all" || q.type === state.catType;
-      return matchSubj && matchType;
-    });
-
-    let html = `
-      <div class="panel">
-        <h2 class="panel-title">学科分类</h2>
-        <div class="subj-grid">
-          <button class="subj-card ${state.catSubject === "all" ? "active" : ""}" data-filter-subj="all">
-            <span class="sc-name">全部学科</span>
-            <span class="sc-cnt">${state.allQuestions.length} 题</span>
-          </button>
-          ${subjects
-            .map(
-              (s) => `
-            <button class="subj-card ${state.catSubject === s ? "active" : ""}" data-filter-subj="${escapeHtml(s)}">
-              <span class="sc-name">${escapeHtml(s)}</span>
-              <span class="sc-cnt">${state.allQuestions.filter((q) => q.subject === s).length} 题</span>
-            </button>
-          `,
-            )
-            .join("")}
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">题型分类</h2>
-        <div class="type-chips">
-          <button class="type-chip ${state.catType === "all" ? "active" : ""}" data-filter-type="all">全部题型</button>
-          ${types.map((t) => `<button class="type-chip ${state.catType === t ? "active" : ""}" data-filter-type="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}
-        </div>
-      </div>
-
-      <div class="result-head" style="margin-bottom:12px;">当前筛选出 <b>${filtered.length}</b> 道题目</div>
-      <div class="card-list">
-        ${filtered.length ? filtered.map((q) => renderQuestionCard(q, false)).join("") : '<div class="panel"><p class="muted" style="text-align:center;">没有找到符合条件的题目</p></div>'}
-      </div>
-    `;
-    $("#view-category").innerHTML = html;
-  }
-
-  function renderWrongListView() {
-    const list = state.allQuestions.filter((q) => state.wrongIds.has(q.id));
-    $("#view-wrong").innerHTML = `
-      <div class="panel"><h2 class="panel-title">📕 错题本 (${list.length} 题)</h2><p class="muted">攻克后可点击卡片上的“已在错题本”移出。</p></div>
-      <div class="card-list">${list.length ? list.map((q) => renderQuestionCard(q, false)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">错题本暂为空，刷题时点击卡片下方的“加入错题本”即可收录。</p></div>'}</div>
-    `;
-  }
-
-  function renderFavListView() {
-    const list = state.allQuestions.filter((q) => state.favIds.has(q.id));
-    $("#view-favorites").innerHTML = `
-      <div class="panel"><h2 class="panel-title">⭐ 重点考点收藏 (${list.length} 题)</h2><p class="muted">精选大题与高频名词解释可在此集中背诵。</p></div>
-      <div class="card-list">${list.length ? list.map((q) => renderQuestionCard(q, true)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">收藏夹暂为空，点击题目卡片上的“⭐ 收藏”即可加入。</p></div>'}</div>
-    `;
-  }
-
-  function renderSettingsView() {
-    const aiCfg = loadStorageObj(STORAGE_KEYS.aiConfig);
-    if ($("#cfg-ai-endpoint"))
-      $("#cfg-ai-endpoint").value = aiCfg.endpoint || "";
-    if ($("#cfg-ai-key")) $("#cfg-ai-key").value = aiCfg.key || "";
-  }
-
-  // ---------- AI 批改引擎 ----------
-  async function handleAIGrade(btn) {
-    const card = btn.closest(".q-card");
-    if (!card) return;
-    const q = state.allQuestions.find((item) => item.id === card.dataset.id);
+  // ==========================================
+  // 7. AI 助教评分与多维诊断引擎
+  // ==========================================
+  async function handleAIGrading(qid, btn) {
+    const q = state.allQuestions.find((item) => item.id === qid);
     if (!q) return;
 
-    const input = $(".card-answer-input", card);
-    const resultBox = $(".ai-result-box", card);
-    const answerText = (input ? input.value : "").trim();
+    const answerText = (state.userAnswers[qid] || "").trim();
     if (!answerText) {
-      alert("请先在输入框写下你的答题思路或答案！");
+      alert("请先在答题输入框填写作答内容或论述提纲！");
       return;
     }
 
-    btn.disabled = true;
-    btn.textContent = "⏳ 智能阅卷分析中...";
-    resultBox.style.display = "block";
-    resultBox.innerHTML =
-      "<p class='muted' style='margin:0;'>正在比对北大采分点、分析论证逻辑与学术术语...</p>";
+    const resPanel = $(`#ai-res-${qid}`);
+    if (!resPanel) return;
 
-    const aiCfg = loadStorageObj(STORAGE_KEYS.aiConfig);
+    btn.disabled = true;
+    btn.textContent = "⏳ 智能阅卷批改中...";
+    resPanel.style.display = "block";
+    resPanel.innerHTML =
+      '<p class="muted-loading">正在比对北大标准采分点、分析学术术语规范与论述逻辑...</p>';
+
+    const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
 
     try {
-      let res = null;
+      let result = null;
+
+      // 若配置了自定义外部 API (如 Dify / LLM Endpoint)
       if (aiCfg.endpoint) {
-        const r = await fetch(aiCfg.endpoint, {
+        const response = await fetch(aiCfg.endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -538,305 +588,336 @@
             user_answer: answerText,
           }),
         });
-        const data = await r.json();
-        res = {
-          score: data.score || Math.round((q.score || 10) * 0.75),
-          maxScore: q.score || 10,
-          hitPoints: data.hit_points || [],
-          missPoints: data.miss_points || [],
-          feedback: data.feedback || "批改完成。",
-        };
-      } else {
+
+        if (response.ok) {
+          const data = await response.json();
+          result = {
+            score:
+              data.score != null
+                ? data.score
+                : Math.round((q.score || 10) * 0.8),
+            maxScore: q.score || 10,
+            hitPoints: data.hit_points || [],
+            missPoints: data.miss_points || [],
+            feedback: data.feedback || data.answer || "批改完成。",
+          };
+        }
+      }
+
+      // 本地内置采分匹配与启发式评分引擎 (Fallback Engine)
+      if (!result) {
         const maxScore = q.score > 0 ? q.score : 10;
-        const targetKws = new Set([
-          ...q.tags,
-          ...(q.answer.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
-        ]);
+        const targetKeywords = Array.from(
+          new Set([
+            ...(q.tags || []),
+            ...(q.answer.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
+          ]),
+        ).filter((k) => k.length >= 2);
+
         const hit = [];
         const miss = [];
-        targetKws.forEach((k) => {
-          if (k.length >= 2 && answerText.includes(k)) hit.push(k);
-          else if (k.length >= 2 && q.tags.includes(k)) miss.push(k);
+
+        targetKeywords.forEach((kw) => {
+          if (answerText.includes(kw)) {
+            hit.push(kw);
+          } else if (q.tags && q.tags.includes(kw)) {
+            miss.push(kw);
+          }
         });
-        const ratio = Math.max(
-          0.3,
-          Math.min(
-            0.95,
-            Math.min(1, answerText.length / 180) * 0.4 +
-              (targetKws.size ? hit.length / (targetKws.size * 0.4) : 0.6) *
-                0.6,
-          ),
+
+        const lenRatio = Math.min(1, answerText.length / 160);
+        const hitRatio = targetKeywords.length
+          ? Math.min(1, hit.length / Math.max(3, targetKeywords.length * 0.4))
+          : 0.7;
+        const totalRatio = Math.max(
+          0.35,
+          Math.min(0.96, lenRatio * 0.35 + hitRatio * 0.65),
         );
-        const finalScore = Math.round(maxScore * ratio);
-        res = {
+        const finalScore = Math.round(maxScore * totalRatio);
+
+        result = {
           score: finalScore,
           maxScore: maxScore,
           hitPoints: hit.slice(0, 6),
           missPoints: miss.slice(0, 5),
           feedback:
             finalScore >= maxScore * 0.8
-              ? "作答要点全面，核心概念界定清晰，较好契合了北大考研标准采分框架。"
-              : "答出了基本主旨，但对学术渊源与文本论证深度仍可加强。",
+              ? "概念界定清晰准确，论点结构完整，术语使用规范，较好切中了北大文科考研核心采分点。"
+              : "已具备基本答题框架，但对文论源流、代表性原典论据及学术史影响的展开仍有待加强。",
         };
       }
 
-      resultBox.innerHTML = `
-        <div style="font-size:16px; font-weight:800; color:var(--ok); margin-bottom:8px;">🎯 预估得分：${res.score} / ${res.maxScore} 分</div>
-        <div style="font-size:13px; color:#222; margin-bottom:6px;"><strong style="color:var(--ok);">✅ 命中得分点：</strong> ${escapeHtml(res.hitPoints.join("、") || "未明显命中核心术语")}</div>
-        <div style="font-size:13px; color:#222; margin-bottom:6px;"><strong style="color:var(--wrong);">❌ 建议补充要点：</strong> ${escapeHtml(res.missPoints.join("、") || "无严重缺漏")}</div>
-        <div style="background:var(--bg-paper); padding:10px 12px; border-radius:6px; font-size:13px; color:var(--text-main); border:1px solid var(--border-color); margin-top:8px;"><strong>💡 阅卷点拨：</strong> ${escapeHtml(res.feedback)}</div>
+      // 渲染批改结果卡片
+      resPanel.innerHTML = `
+        <div class="ai-score-title">🎯 预估得分：${result.score} / ${result.maxScore} 分</div>
+        <div class="ai-score-row"><strong class="ok-tag">✅ 命中要点：</strong> ${escapeHtml(result.hitPoints.join("、") || "已表达基础主旨")}</div>
+        <div class="ai-score-row"><strong class="miss-tag">❌ 建议补充：</strong> ${escapeHtml(result.missPoints.join("、") || "要点覆盖良好")}</div>
+        <div class="ai-feedback-box"><strong>💡 阅卷指导建议：</strong> ${escapeHtml(result.feedback)}</div>
       `;
-    } catch (e) {
-      toast("AI 服务异常，已完成本地要点分析");
+    } catch (err) {
+      showToast("AI 服务请求异常，已切换为本地快速阅卷分析");
+      resPanel.innerHTML = `<p style="color:var(--wrong);">批改服务响应超时，请检查网络或设置中的 API 接口。</p>`;
     } finally {
       btn.disabled = false;
       btn.textContent = "🤖 AI 智能批改打分";
     }
   }
 
-  // ---------- 事件绑定 ----------
-  function bindEvents() {
-    const navToggleBtn = $("#nav-toggle-btn");
-    const mainNav = $("#main-nav");
-    if (navToggleBtn && mainNav)
-      navToggleBtn.addEventListener("click", () =>
-        mainNav.classList.toggle("open"),
-      );
-
+  // ==========================================
+  // 8. 全局事件委托机制 (Event Delegation)
+  // ==========================================
+  function bindGlobalEvents() {
     document.addEventListener("click", (e) => {
-      const t = e.target;
+      const target = e.target;
 
-      const navA = t.closest(".nav a");
-      if (navA && navA.dataset.target) {
-        switchView(navA.dataset.target);
+      // 1. 顶部导航与带 data-view 路由的元素
+      const navLink = target.closest("[data-view]");
+      if (navLink) {
+        e.preventDefault();
+        switchView(navLink.dataset.view);
         return;
       }
 
-      const goBtn = t.closest("[data-go]");
-      if (goBtn) {
-        switchView(goBtn.dataset.go);
-        return;
-      }
-
-      const goYearBtn = t.closest("[data-go-year]");
-      if (goYearBtn) {
-        state.paperYear = Number(goYearBtn.dataset.goYear);
+      // 2. 年份直达点击
+      const navYearBtn = target.closest("[data-nav-year]");
+      if (navYearBtn) {
+        state.paperYear = Number(navYearBtn.dataset.navYear);
         state.paperSubjectCode = "all";
         state.paperIndex = 0;
-        if (state.view === "home") {
-          renderHomeView();
-        } else {
-          switchView("papers");
-        }
+        switchView("papers");
         return;
       }
 
-      const goSubjBtn = t.closest("[data-go-subject]");
-      if (goSubjBtn) {
-        state.catSubject = goSubjBtn.dataset.goSubject;
-        state.catType = "all";
-        switchView("category");
+      // 3. 模考模式切换
+      if (target.id === "btn-mode-recite") {
+        state.paperMode = "recite";
+        renderPapersView();
         return;
       }
-
-      const actBtn = t.closest("[data-action]");
-      if (actBtn) {
-        const action = actBtn.dataset.action;
-        const card = actBtn.closest(".q-card");
-        if (!card) return;
-        const qid = card.dataset.id;
-
-        if (action === "toggle-answer") {
-          const an = $(".q-analysis", card);
-          const isShow = an.classList.toggle("show");
-          actBtn.textContent = isShow ? "隐藏采分点" : "查看采分点";
-        } else if (action === "toggle-wrong") {
-          if (state.wrongIds.has(qid)) {
-            state.wrongIds.delete(qid);
-            toast("已从错题本移出");
-            actBtn.className = "btn btn-wrong";
-            actBtn.textContent = "加入错题本";
-          } else {
-            state.wrongIds.add(qid);
-            toast("已加入错题本");
-            actBtn.className = "btn btn-wrong-active";
-            actBtn.textContent = "✓ 已在错题本";
-          }
-          saveStorageSet(STORAGE_KEYS.wrong, state.wrongIds);
-          if (state.view === "wrong") switchView("wrong");
-        } else if (action === "toggle-fav") {
-          if (state.favIds.has(qid)) {
-            state.favIds.delete(qid);
-            toast("已取消收藏");
-            actBtn.className = "btn btn-fav";
-            actBtn.textContent = "⭐ 收藏";
-          } else {
-            state.favIds.add(qid);
-            toast("已收藏重点考点");
-            actBtn.className = "btn btn-fav-active";
-            actBtn.textContent = "⭐ 已收藏";
-          }
-          saveStorageSet(STORAGE_KEYS.favorites, state.favIds);
-          if (state.view === "favorites") switchView("favorites");
-        } else if (action === "ai-grade") {
-          handleAIGrade(actBtn);
-        }
-        return;
-      }
-
-      const navAct = t.closest("[data-act]");
-      if (navAct) {
-        const act = navAct.dataset.act;
-        const filtered = state.allQuestions.filter(
-          (q) =>
-            q.year === state.paperYear &&
-            (state.paperSubjectCode === "all" ||
-              q.subjectCode === state.paperSubjectCode),
-        );
-        if (act === "prev" && state.paperIndex > 0) {
-          state.paperIndex--;
-          renderPapersView();
-        } else if (act === "next" && state.paperIndex < filtered.length - 1) {
-          state.paperIndex++;
-          renderPapersView();
-        } else if (act === "jump") {
-          state.paperIndex = Number(navAct.dataset.idx);
-          renderPapersView();
-        }
-        return;
-      }
-
-      const modeBtn = t.closest("[data-mode]");
-      if (modeBtn) {
-        state.paperMode = modeBtn.dataset.mode;
+      if (target.id === "btn-mode-exam") {
+        state.paperMode = "exam";
         renderPapersView();
         return;
       }
 
-      const filterSubj = t.closest("[data-filter-subj]");
-      if (filterSubj) {
-        state.catSubject = filterSubj.dataset.filterSubj;
+      // 4. 试卷翻页导航
+      if (target.id === "btn-prev-q" || target.closest("#btn-prev-q")) {
+        if (state.paperIndex > 0) {
+          state.paperIndex--;
+          renderPapersView();
+        }
+        return;
+      }
+      if (target.id === "btn-next-q" || target.closest("#btn-next-q")) {
+        const filtered = state.allQuestions.filter((q) => {
+          return (
+            q.year === state.paperYear &&
+            (state.paperSubjectCode === "all" ||
+              q.subjectCode === state.paperSubjectCode)
+          );
+        });
+        if (state.paperIndex < filtered.length - 1) {
+          state.paperIndex++;
+          renderPapersView();
+        }
+        return;
+      }
+
+      // 5. 答题卡快速跳转
+      const acCell = target.closest("[data-nav-idx]");
+      if (acCell) {
+        state.paperIndex = Number(acCell.dataset.navIdx);
+        renderPapersView();
+        return;
+      }
+
+      // 6. 学科分类与题型选择
+      const catSubjBtn = target.closest("[data-cat-subj]");
+      if (catSubjBtn) {
+        state.catSubject = catSubjBtn.dataset.catSubj;
+        renderCategoryView();
+        return;
+      }
+      const catTypeBtn = target.closest("[data-cat-type]");
+      if (catTypeBtn) {
+        state.catType = catTypeBtn.dataset.catType;
         renderCategoryView();
         return;
       }
 
-      const filterType = t.closest("[data-filter-type]");
-      if (filterType) {
-        state.catType = filterType.dataset.filterType;
-        renderCategoryView();
+      // 7. 题目卡片交互动作委托
+      const actionBtn = target.closest("[data-action]");
+      if (actionBtn) {
+        const action = actionBtn.dataset.action;
+        const qid = actionBtn.dataset.qid;
+
+        if (action === "toggle-analysis") {
+          const anEl = $(`#analysis-${qid}`);
+          if (anEl) {
+            const isShow = anEl.classList.toggle("show");
+            actionBtn.textContent = isShow ? "隐藏采分点" : "查看采分点";
+          }
+        } else if (action === "toggle-wrong") {
+          if (state.wrongIds.has(qid)) {
+            state.wrongIds.delete(qid);
+            actionBtn.className = "btn btn-wrong";
+            actionBtn.textContent = "加入错题本";
+            showToast("已从错题本移出");
+          } else {
+            state.wrongIds.add(qid);
+            actionBtn.className = "btn btn-wrong-active";
+            actionBtn.textContent = "✓ 已在错题本";
+            showToast("已加入错题本");
+          }
+          saveSet(STORAGE_KEYS.wrong, state.wrongIds);
+          if (state.currentView === "wrong") renderWrongView();
+          if (state.currentView === "home") renderHomeView();
+        } else if (action === "toggle-fav") {
+          if (state.favIds.has(qid)) {
+            state.favIds.delete(qid);
+            actionBtn.className = "btn btn-fav";
+            actionBtn.textContent = "⭐ 收藏考点";
+            showToast("已取消收藏");
+          } else {
+            state.favIds.add(qid);
+            actionBtn.className = "btn btn-fav-active";
+            actionBtn.textContent = "⭐ 已收藏考点";
+            showToast("已加入重点考点收藏");
+          }
+          saveSet(STORAGE_KEYS.favorites, state.favIds);
+          if (state.currentView === "fav") renderFavView();
+        } else if (action === "ai-grade") {
+          handleAIGrading(qid, actionBtn);
+        }
+        return;
+      }
+
+      // 8. 检索按钮
+      if (target.id === "btn-do-search" || target.closest("#btn-do-search")) {
+        const input = $("#search-input");
+        if (input) {
+          state.searchKeyword = input.value;
+          renderSearchView();
+        }
+        return;
+      }
+
+      // 9. AI 设置保存与恢复
+      if (target.id === "btn-save-ai-cfg") {
+        saveObj(STORAGE_KEYS.aiConfig, {
+          endpoint: $("#cfg-ai-endpoint")
+            ? $("#cfg-ai-endpoint").value.trim()
+            : "",
+          key: $("#cfg-ai-key") ? $("#cfg-ai-key").value.trim() : "",
+        });
+        showToast("AI 接口配置已保存！");
+        return;
+      }
+      if (target.id === "btn-reset-ai-cfg") {
+        saveObj(STORAGE_KEYS.aiConfig, {});
+        if ($("#cfg-ai-endpoint")) $("#cfg-ai-endpoint").value = "";
+        if ($("#cfg-ai-key")) $("#cfg-ai-key").value = "";
+        showToast("已恢复内置批改引擎");
         return;
       }
     });
 
+    // 文本框实时输入与草稿防丢
     document.addEventListener("input", (e) => {
       if (e.target && e.target.classList.contains("card-answer-input")) {
-        const card = e.target.closest(".q-card");
-        if (card && card.dataset.id) {
-          state.userAnswers[card.dataset.id] = e.target.value;
-          saveStorageObj(STORAGE_KEYS.userAnswers, state.userAnswers);
+        const qid = e.target.dataset.qid;
+        if (qid) {
+          state.userAnswers[qid] = e.target.value;
+          saveObj(STORAGE_KEYS.answers, state.userAnswers);
         }
       }
     });
 
+    // 下拉框联动
     document.addEventListener("change", (e) => {
-      if (e.target.id === "paper-year-select") {
+      if (e.target.id === "paper-year-sel") {
         state.paperYear = Number(e.target.value);
         state.paperSubjectCode = "all";
         state.paperIndex = 0;
         renderPapersView();
-      } else if (e.target.id === "paper-code-select") {
+      } else if (e.target.id === "paper-code-sel") {
         state.paperSubjectCode = e.target.value;
         state.paperIndex = 0;
         renderPapersView();
       }
     });
 
-    const searchBtn = $("#searchBtn");
-    const searchInput = $("#searchInput");
-    const doSearch = () => {
-      const summary = $("#searchResultsSummary");
-      const listEl = $("#searchResultsList");
-      const kw = searchInput.value.trim().toLowerCase();
-      if (!kw) {
-        summary.textContent = "请输入搜索词";
-        listEl.innerHTML = "";
-        return;
-      }
-      const res = state.allQuestions.filter(
-        (q) =>
-          q.title.toLowerCase().includes(kw) ||
-          q.answer.toLowerCase().includes(kw) ||
-          q.subject.toLowerCase().includes(kw) ||
-          q.tags.some((t) => t.toLowerCase().includes(kw)),
-      );
-      summary.innerHTML = `搜索 “<b>${escapeHtml(kw)}</b>” 共匹配到 <b>${res.length}</b> 道真题：`;
-      listEl.innerHTML = res.length
-        ? res.map((q) => renderQuestionCard(q, false)).join("")
-        : '<div class="panel"><p class="muted" style="text-align:center;">未找到相关题目</p></div>';
-    };
-    if (searchBtn) searchBtn.addEventListener("click", doSearch);
-    if (searchInput)
+    // 回车检索
+    const searchInput = $("#search-input");
+    if (searchInput) {
       searchInput.addEventListener("keyup", (e) => {
-        if (e.key === "Enter") doSearch();
-      });
-
-    if ($("#save-ai-cfg-btn")) {
-      $("#save-ai-cfg-btn").addEventListener("click", () => {
-        saveStorageObj(STORAGE_KEYS.aiConfig, {
-          endpoint: $("#cfg-ai-endpoint").value.trim(),
-          key: $("#cfg-ai-key").value.trim(),
-        });
-        toast("配置已保存！");
-      });
-    }
-    if ($("#reset-ai-cfg-btn")) {
-      $("#reset-ai-cfg-btn").addEventListener("click", () => {
-        saveStorageObj(STORAGE_KEYS.aiConfig, {});
-        if ($("#cfg-ai-endpoint")) $("#cfg-ai-endpoint").value = "";
-        if ($("#cfg-ai-key")) $("#cfg-ai-key").value = "";
-        toast("已恢复内置评分引擎");
+        if (e.key === "Enter") {
+          state.searchKeyword = searchInput.value;
+          renderSearchView();
+        }
       });
     }
   }
 
+  // ==========================================
+  // 9. 系统初始化入口 (Bootstrapper)
+  // ==========================================
   async function initApp() {
-    state.wrongIds = loadStorageSet(STORAGE_KEYS.wrong);
-    state.favIds = loadStorageSet(STORAGE_KEYS.favorites);
-    state.userAnswers = loadStorageObj(STORAGE_KEYS.userAnswers);
-    state.userNotes = loadStorageObj(STORAGE_KEYS.userNotes);
-    state.customQuestions = loadStorageArray(STORAGE_KEYS.customLib)
+    // 1. 从 LocalStorage 恢复用户状态
+    state.wrongIds = loadSet(STORAGE_KEYS.wrong);
+    state.favIds = loadSet(STORAGE_KEYS.favorites);
+    state.userAnswers = loadObj(STORAGE_KEYS.answers);
+    state.userNotes = loadObj(STORAGE_KEYS.notes);
+    state.customQuestions = (loadObj(STORAGE_KEYS.customLib) || [])
       .map(normalizeQuestion)
       .filter(Boolean);
 
-    bindEvents();
+    // 2. 绑定 DOM 与交互事件
+    bindGlobalEvents();
 
-    const candidateFiles = ["cleaned_questions.json", "questions.json"];
-    let loadedData = null;
-
-    for (const filename of candidateFiles) {
-      try {
-        const res = await fetch(filename);
-        if (res.ok) {
-          const json = await res.json();
-          loadedData = Array.isArray(json) ? json : json.questions || [];
-          if (loadedData.length > 0) break;
+    // 3. 载入核心题库数据 (优先全局数据变量，降级为异步 fetch)
+    let loaded = null;
+    if (
+      window.PKU_DATA &&
+      Array.isArray(window.PKU_DATA) &&
+      window.PKU_DATA.length > 0
+    ) {
+      loaded = window.PKU_DATA;
+    } else {
+      const candidates = [
+        "data/questions.json",
+        "cleaned_questions.json",
+        "questions.json",
+      ];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            loaded = Array.isArray(data) ? data : data.questions || [];
+            if (loaded.length > 0) break;
+          }
+        } catch (err) {
+          // 忽略单个文件未命中
         }
-      } catch (e) {}
+      }
     }
 
-    if ($("#loading")) $("#loading").classList.add("hidden");
-
-    if (loadedData && loadedData.length) {
-      state.baseQuestions = loadedData
-        .map((q, idx) => normalizeQuestion(q, idx))
+    if (loaded && loaded.length) {
+      state.baseQuestions = loaded
+        .map((q, i) => normalizeQuestion(q, i))
         .filter(Boolean);
     }
 
-    mergeAllQuestions();
+    // 4. 数据合并与首屏渲染
+    mergeQuestions();
     switchView("home");
   }
 
-  if (document.readyState === "loading")
+  // DOM 就绪后启动
+  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initApp);
-  else initApp();
+  } else {
+    initApp();
+  }
 })();

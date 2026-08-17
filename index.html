@@ -3,189 +3,281 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>北京大学中文考研真题研习系统 · PKU Literature Exam</title>
+    <title>北京大学中文考研真题研习系统</title>
+    <!-- 直接引用根目录下的 style.css -->
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- 1. 顶部校训横幅 (文化底蕴植入) -->
-    <div class="top-motto-bar">
+    <!-- 1. 顶部校训栏 -->
+    <aside class="top-motto-bar">
       <div class="motto-inner">
-        <div class="motto-cn">思想自由 · 兼容并包</div>
-        <div class="motto-en">
-          Freedom of Thought &amp; Inclusiveness · Peking University 1898
-        </div>
+        <span class="motto-cn">思想自由 兼容并包</span>
+        <span class="motto-en"
+          >Peking University Department of Chinese Language and Literature</span
+        >
       </div>
-    </div>
+    </aside>
 
-    <!-- 2. 品牌 Header 导航栏 -->
+    <!-- 2. 顶部主导航栏 -->
     <header class="header">
       <div class="header-inner">
-        <div class="brand" data-go="home">
+        <div class="brand-logo" data-view="home">
           <div class="brand-emblem">北</div>
           <div class="brand-text">
-            <h1>北京大学中文考研 · 真题研习系统</h1>
-            <p>中国语言文学系 · 历年真题与 AI 智能批改平台</p>
+            <span class="brand-title">北京大学</span>
+            <span class="brand-sub">中文考研真题研习</span>
           </div>
         </div>
-
-        <button class="nav-toggle" id="nav-toggle-btn" aria-label="切换菜单">
-          ☰
-        </button>
-
-        <nav class="nav" id="main-nav">
-          <a data-target="home" class="active">首页看板</a>
-          <a data-target="papers">历年真题</a>
-          <a data-target="category">学科分类</a>
-          <a data-target="search">全库检索</a>
-          <a data-target="wrong"
-            >错题攻克<span class="badge-count" id="nav-wrong-badge"></span
-          ></a>
-          <a data-target="favorites"
-            >重点收藏<span class="badge-count fav" id="nav-fav-badge"></span
-          ></a>
-          <a data-target="settings">系统与题库</a>
+        <nav>
+          <ul class="nav-menu">
+            <li class="nav-item">
+              <a class="nav-link active" data-view="home">首页</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-view="papers">历年真题</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-view="category">分类刷题</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-view="search">题库检索</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-view="wrong">错题本</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-view="fav">重点收藏</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-ai-grade" data-view="settings">AI 批改</a>
+            </li>
+          </ul>
         </nav>
       </div>
     </header>
 
-    <!-- 3. 主体内容容器 -->
-    <main class="container">
-      <div id="load-banner" class="load-banner hidden"></div>
+    <!-- 3. 顶部横幅区 -->
+    <section class="banner">
+      <div class="banner-overlay"></div>
+      <div class="banner-content">
+        <h1 class="banner-motto">思想自由 兼容并包</h1>
+        <p class="banner-sub">
+          2000 – 2026 历年全真试卷研习 · 文艺学 / 古代文学 / 现当代文学 /
+          中外文学基础 / 比较文学
+        </p>
+      </div>
+    </section>
 
-      <!-- 首页看板视图 -->
-      <section id="view-home" class="view active"></section>
-
-      <!-- 历年真题套卷视图 -->
-      <section id="view-papers" class="view"></section>
-
-      <!-- 学科分类刷题视图 -->
-      <section id="view-category" class="view"></section>
-
-      <!-- 全库检索视图 -->
-      <section id="view-search" class="view">
-        <div class="panel">
-          <h2 class="panel-title">🔍 全题库多维检索</h2>
-          <div class="search-box-wrap">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="输入关键词、作家、流派、概念、理论名（如：鲁迅、有我之境、叙事学、杜甫）..."
-              autocomplete="off"
-            />
-            <button class="btn btn-primary" id="searchBtn">搜索</button>
+    <!-- 4. 主体内容容器 -->
+    <main class="main-container">
+      <!-- 视图 1：首页看板 -->
+      <section id="view-home" class="view active">
+        <div class="data-cards-grid">
+          <div class="data-card">
+            <div class="data-number" id="home-total-cnt">281</div>
+            <div class="data-label">道 · 题库总录</div>
           </div>
-          <div
-            id="searchResultsSummary"
-            class="result-head"
-            style="margin-top: 12px"
-          ></div>
-          <div
-            id="searchResultsList"
-            class="card-list"
-            style="margin-top: 12px"
-          ></div>
+          <div class="data-card">
+            <div class="data-number" id="home-span-cnt">7</div>
+            <div class="data-label">年 · 真题跨度</div>
+          </div>
+          <div class="data-card">
+            <div class="data-number">5</div>
+            <div class="data-label">大 · 专业学科</div>
+          </div>
+          <div class="data-card">
+            <div class="data-number" id="home-wrong-cnt">0</div>
+            <div class="data-label">题 · 待攻克错题</div>
+          </div>
+        </div>
+
+        <div class="portals-grid">
+          <div class="portal-card" data-view="papers">
+            <div>
+              <div class="portal-icon">📜</div>
+              <div class="portal-name">历年套卷全真模考</div>
+              <div class="portal-desc">
+                高度还原真题卷面结构，支持答题卡跳转与沉浸式计时模考。
+              </div>
+            </div>
+          </div>
+          <div class="portal-card" data-view="category">
+            <div>
+              <div class="portal-icon">📚</div>
+              <div class="portal-name">五大学科专项专练</div>
+              <div class="portal-desc">
+                按古代文学、现当代、文艺学、中外文基等学科与题型精确筛选。
+              </div>
+            </div>
+          </div>
+          <div class="portal-card" data-view="search">
+            <div>
+              <div class="portal-icon">🔍</div>
+              <div class="portal-name">考点原典精准检索</div>
+              <div class="portal-desc">
+                支持作家作品、文学批评命题、原典出处与采分点全文检索。
+              </div>
+            </div>
+          </div>
+          <div class="portal-card" data-view="wrong">
+            <div>
+              <div class="portal-icon">📕</div>
+              <div class="portal-name">错题复习与笔记</div>
+              <div class="portal-desc">
+                自动归集薄弱大题，沉淀个人论述答题提纲与掌握度追踪。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">历年真题套卷直达</h2>
+            <span class="section-tip">点击年份直接进入该年度试卷做题</span>
+          </div>
+          <div class="year-grid" id="home-year-grid"></div>
         </div>
       </section>
 
-      <!-- 错题本视图 -->
-      <section id="view-wrong" class="view"></section>
-
-      <!-- 重点收藏视图 -->
-      <section id="view-favorites" class="view"></section>
-
-      <!-- 系统与题库管理视图 -->
-      <section id="view-settings" class="view">
-        <div class="panel">
-          <h2 class="panel-title">📚 题库导入与管理</h2>
-          <p class="muted">
-            支持上传
-            <code>cleaned_questions.json</code>，系统将自动合并并更新本地题库。
-          </p>
-          <div id="drop-zone" class="drop-zone">
-            <input
-              type="file"
-              id="file-input"
-              accept=".json,application/json"
-              multiple
-            />
-            <p class="dz-main">
-              点击选择文件，或将 <code>cleaned_questions.json</code> 拖拽到此处
-            </p>
-            <p class="muted small">
-              标准字段支持：id, year, subject, subjectCode, type, score,
-              question, answer, tags
-            </p>
+      <!-- 视图 2：历年真题模考 -->
+      <section id="view-papers" class="view">
+        <div class="paper-ctrl-bar">
+          <div class="paper-selects">
+            <label for="paper-year-sel" class="ctrl-label">年份：</label>
+            <select id="paper-year-sel"></select>
+            <label for="paper-code-sel" class="ctrl-label">科目代码：</label>
+            <select id="paper-code-sel"></select>
           </div>
-          <div id="upload-status"></div>
+          <div class="mode-btn-group">
+            <button class="btn btn-primary" id="btn-mode-recite">
+              📖 背题模式
+            </button>
+            <button class="btn btn-ghost" id="btn-mode-exam">
+              ⏱️ 模考模式
+            </button>
+          </div>
         </div>
 
-        <div class="panel">
-          <h2 class="panel-title">🤖 AI 智能批改设置 (Dify / 大模型 API)</h2>
-          <p class="muted">
-            系统已内置本地启发式智能评分算法。如需接入自建 Dify 或大模型
-            API，可在此配置：
+        <div id="paper-question-container"></div>
+
+        <div class="paper-nav-actions">
+          <button class="btn btn-primary" id="btn-prev-q">← 上一题</button>
+          <button class="btn btn-primary" id="btn-next-q">下一题 →</button>
+        </div>
+
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">试卷答题卡与快速定位</h2>
+            <span id="paper-progress-text" class="section-tip">加载中...</span>
+          </div>
+          <div class="ac-grid" id="paper-sheet-grid"></div>
+        </div>
+      </section>
+
+      <!-- 视图 3：分类刷题 -->
+      <section id="view-category" class="view">
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">学科与题型筛选</h2>
+          </div>
+          <div class="subj-grid" id="cat-subj-grid"></div>
+          <div class="type-chips" id="cat-type-chips"></div>
+        </div>
+        <div id="cat-list-container" class="card-list"></div>
+      </section>
+
+      <!-- 视图 4：全库检索 -->
+      <section id="view-search" class="view">
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">全真题库考点全文检索</h2>
+          </div>
+          <div class="search-bar">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="输入作家名（如鲁迅、杜甫）、文论命题（如陌生化、境界说）或原典名句..."
+            />
+            <button class="btn btn-primary" id="btn-do-search">
+              🔍 立即检索
+            </button>
+          </div>
+          <div id="search-results-summary" class="search-summary">
+            请输入关键词检索
+          </div>
+        </div>
+        <div id="search-list-container" class="card-list"></div>
+      </section>
+
+      <!-- 视图 5：错题本 -->
+      <section id="view-wrong" class="view">
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">📕 个人错题攻克本</h2>
+            <span id="wrong-summary-text" class="section-tip">共收录 0 题</span>
+          </div>
+          <div id="wrong-list-container" class="card-list"></div>
+        </div>
+      </section>
+
+      <!-- 视图 6：重点收藏 -->
+      <section id="view-fav" class="view">
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">⭐ 重点高频考点收藏</h2>
+            <span id="fav-summary-text" class="section-tip">共收藏 0 题</span>
+          </div>
+          <div id="fav-list-container" class="card-list"></div>
+        </div>
+      </section>
+
+      <!-- 视图 7：设置与 AI 接口配置 -->
+      <section id="view-settings" class="view">
+        <div class="section-box">
+          <div class="section-header">
+            <h2 class="section-title">🤖 AI 智能助教与批改引擎设置</h2>
+          </div>
+          <p class="settings-desc">
+            系统默认已内置<strong>「北大文科采分要点匹配与论述逻辑评分引擎」</strong>，无需任何配置即可即时判分。<br />
+            如需连接专属 Dify
+            工作流或外部大模型接口进行深度批改，请在下方填入配置：
           </p>
-          <div class="form-row">
-            <label>API 端点地址 (Endpoint):</label>
+          <div class="form-group">
+            <label for="cfg-ai-endpoint" class="form-label"
+              >API Endpoint 地址：</label
+            >
             <input
               type="text"
               id="cfg-ai-endpoint"
-              placeholder="例如: https://api.dify.ai/v1/chat-messages"
+              class="form-input"
+              placeholder="https://api.dify.ai/v1/chat-messages 或自定义代理地址"
             />
           </div>
-          <div class="form-row">
-            <label>API Key / 鉴权密钥:</label>
+          <div class="form-group">
+            <label for="cfg-ai-key" class="form-label">API Key 密钥：</label>
             <input
               type="password"
               id="cfg-ai-key"
-              placeholder="Bearer app-xxxxxx"
+              class="form-input"
+              placeholder="Bearer app-xxxxxxxxxxxxxxxx"
             />
           </div>
-          <div style="margin-top: 12px">
-            <button class="btn btn-primary" id="save-ai-cfg-btn">
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btn-save-ai-cfg">
               保存配置
             </button>
-            <button class="btn btn-ghost" id="reset-ai-cfg-btn">
-              恢复默认本地评分引擎
-            </button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">💾 学习进度数据备份</h2>
-          <p class="muted">
-            将本地错题、收藏和答题笔记导出为 JSON 备份文件，方便跨设备迁移。
-          </p>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap">
-            <button class="btn btn-primary" id="btn-export-data">
-              导出学习数据 (JSON)
-            </button>
-            <label class="btn btn-ghost" style="cursor: pointer">
-              导入学习数据
-              <input
-                type="file"
-                id="import-data-file"
-                accept=".json"
-                style="display: none"
-              />
-            </label>
-            <button class="btn btn-wrong" id="btn-clear-data">
-              清空本地答题记录
+            <button class="btn btn-ghost" id="btn-reset-ai-cfg">
+              恢复内置评分引擎
             </button>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- 加载遮罩 -->
-    <div id="loading" class="loading">
-      <div class="spinner"></div>
-      <p>正在装载北大中文考研真题库…</p>
-    </div>
-
-    <!-- Toast 提示 -->
     <div id="toast"></div>
 
+    <!-- 引用根目录下的数据与脚本 -->
+    <script src="data.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
