@@ -3,170 +3,92 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>北京大学考研真题刷题</title>
+    <title>北京大学中文考研真题刷题系统 · PKU Literature Exam</title>
     <link rel="stylesheet" href="style.css" />
-    <script
-      async
-      src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"
-    ></script>
   </head>
   <body>
+    <!-- 顶部导航栏 -->
     <header class="header">
       <div class="header-inner">
-        <div class="brand">北京大学 · 考研真题刷题</div>
-        <div
-          id="user-info"
-          style="
-            margin-left: 18px;
-            margin-right: 8px;
-            color: #fff;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-          "
-        >
-          <span id="user-name" style="display: none"></span>
-          <span
-            id="user-credits"
-            style="
-              display: none;
-              background: rgba(255, 255, 255, 0.08);
-              padding: 6px 8px;
-              border-radius: 12px;
-              font-weight: bold;
-            "
-          ></span>
-          <button
-            id="login-open-btn"
-            style="
-              background: rgba(255, 255, 255, 0.08);
-              border: none;
-              color: #fff;
-              padding: 6px 10px;
-              border-radius: 12px;
-              cursor: pointer;
-            "
-          >
-            登录 / 注册
-          </button>
+        <div class="brand">
+          <span class="brand-badge">PKU</span>
+          <span class="brand-title">北大中文考研 · 真题研习系统</span>
         </div>
 
-        <!-- Inline visible login block (显眼位置) -->
-        <div
-          id="inline-login"
-          style="
-            margin-left: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          "
-        >
-          <input
-            id="login-inline-account"
-            type="text"
-            placeholder="账号"
-            aria-label="账号"
-            style="
-              padding: 6px 8px;
-              border-radius: 6px;
-              border: 1px solid rgba(255, 255, 255, 0.12);
-              font-size: 13px;
-            "
-          />
-          <input
-            id="login-inline-password"
-            type="password"
-            placeholder="密码"
-            aria-label="密码"
-            style="
-              padding: 6px 8px;
-              border-radius: 6px;
-              border: 1px solid rgba(255, 255, 255, 0.12);
-              font-size: 13px;
-            "
-          />
-          <button
-            id="login-inline-submit"
-            style="
-              background: #ffc107;
-              border: none;
-              color: #111;
-              padding: 7px 10px;
-              border-radius: 8px;
-              cursor: pointer;
-              font-weight: 600;
-            "
-          >
-            登录
-          </button>
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              color: #fff;
-              font-size: 12px;
-            "
-          >
-            <img
-              src="wechat.png"
-              alt="微信二维码"
-              style="
-                width: 36px;
-                height: 36px;
-                object-fit: cover;
-                border-radius: 6px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-              "
-            />
-            <span style="white-space: nowrap">添加开发者微信，领取账号</span>
-          </div>
-        </div>
-        <button class="nav-toggle" aria-label="菜单">☰</button>
-        <nav class="nav">
-          <a data-target="home">首页</a>
-          <a data-target="papers">历年套卷</a>
-          <a data-target="category">分类刷题</a>
+        <button class="nav-toggle" id="nav-toggle-btn" aria-label="切换菜单">
+          ☰
+        </button>
+
+        <nav class="nav" id="main-nav">
+          <a data-target="home" class="active">首页看板</a>
+          <a data-target="papers">历年真题</a>
+          <a data-target="category">学科分类</a>
+          <a data-target="search">全库检索</a>
           <a data-target="wrong"
-            >错题本<span class="badge-count" id="nav-wrong-badge"></span
+            >错题攻克<span class="badge-count" id="nav-wrong-badge"></span
           ></a>
           <a data-target="favorites"
-            >我的收藏<span class="badge-count fav" id="nav-fav-badge"></span
+            >重点收藏<span class="badge-count fav" id="nav-fav-badge"></span
           ></a>
-          <a data-target="upload">上传新卷</a>
+          <a data-target="settings">系统与题库</a>
         </nav>
       </div>
     </header>
 
+    <!-- 主体视图容器 -->
     <main class="container">
-      <!-- index.html -->
-      <div class="search-container">
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="输入关键词搜索题目..."
-          onkeyup="filterQuestions()"
-        />
-      </div>
-
-      <div id="resultsList">
-        <!-- 筛选后的题目将在此显示 -->
-      </div>
+      <!-- 离线/文件协议提示横幅 -->
       <div id="load-banner" class="load-banner hidden"></div>
 
-      <section id="view-home" class="view"></section>
+      <!-- 1. 首页视图 -->
+      <section id="view-home" class="view active"></section>
+
+      <!-- 2. 历年真题 / 模考视图 -->
       <section id="view-papers" class="view"></section>
+
+      <!-- 3. 学科与题型分类刷题视图 -->
       <section id="view-category" class="view"></section>
+
+      <!-- 4. 全库搜索检索视图 -->
+      <section id="view-search" class="view">
+        <div class="panel">
+          <h2 class="panel-title">🔍 全题库多维检索</h2>
+          <div class="search-box-wrap">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="输入关键词、作家、流派、概念、理论名（如：鲁迅、有我之境、叙事学、杜甫）..."
+              autocomplete="off"
+            />
+            <button class="btn btn-primary" id="searchBtn">搜索</button>
+          </div>
+          <div
+            id="searchResultsSummary"
+            class="result-head"
+            style="margin-top: 12px"
+          ></div>
+          <div
+            id="searchResultsList"
+            class="card-list"
+            style="margin-top: 12px"
+          ></div>
+        </div>
+      </section>
+
+      <!-- 5. 错题本视图 -->
       <section id="view-wrong" class="view"></section>
+
+      <!-- 6. 收藏夹视图 -->
       <section id="view-favorites" class="view"></section>
 
-      <section id="view-upload" class="view">
+      <!-- 7. 系统与题库管理视图 -->
+      <section id="view-settings" class="view">
         <div class="panel">
-          <h2 class="panel-title">上传新卷 / 追加题库</h2>
+          <h2 class="panel-title">📚 题库导入与管理</h2>
           <p class="muted">
-            支持上传 JSON
-            文件，系统会自动识别其中的题目并追加合并到当前题库（保存到本地浏览器，刷新后仍有效）。
+            支持上传包含北大中文真题的
+            <code>cleaned_questions.json</code>
+            文件，系统会自动合并并更新本地题库。
           </p>
           <div id="drop-zone" class="drop-zone">
             <input
@@ -175,453 +97,86 @@
               accept=".json,application/json"
               multiple
             />
-            <p class="dz-main">点击选择文件，或将 .json 文件拖拽到此处</p>
+            <p class="dz-main">
+              点击选择文件，或将 <code>cleaned_questions.json</code> 拖拽到此处
+            </p>
             <p class="muted small">
-              题目字段建议包含：title、year、subject、question_type、analysis、frequency_star、tags
+              标准字段支持：id, year, subject, subjectCode, type, score,
+              question, answer, tags
             </p>
           </div>
-          <div id="upload-info" class="muted" style="margin-top: 14px">
-            当前题库共 <b id="lib-count">0</b> 题
-          </div>
           <div id="upload-status"></div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">🤖 AI 智能批改设置 (Dify / 大模型 API)</h2>
+          <p class="muted">
+            系统已内置本地启发式智能评分算法。如需接入您的 Dify
+            工作流或大语言模型 API，可在此配置：
+          </p>
+          <div class="form-row">
+            <label>API 端点地址 (Endpoint):</label>
+            <input
+              type="text"
+              id="cfg-ai-endpoint"
+              placeholder="例如: https://api.dify.ai/v1/chat-messages 或 自定义云函数地址"
+            />
+          </div>
+          <div class="form-row">
+            <label>API Key / 鉴权密钥:</label>
+            <input
+              type="password"
+              id="cfg-ai-key"
+              placeholder="Bearer app-xxxxxx (保存在浏览器本地)"
+            />
+          </div>
+          <div style="margin-top: 12px">
+            <button class="btn btn-primary" id="save-ai-cfg-btn">
+              保存配置
+            </button>
+            <button class="btn btn-ghost" id="reset-ai-cfg-btn">
+              恢复默认本地评分引擎
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">💾 学习进度数据备份</h2>
+          <p class="muted">
+            您可以将本地记录的错题、收藏和答题笔记导出为 JSON
+            备份文件，方便在其他设备上导入恢复。
+          </p>
+          <div style="display: flex; gap: 10px">
+            <button class="btn btn-primary" id="btn-export-data">
+              导出学习数据 (JSON)
+            </button>
+            <label class="btn btn-ghost" style="cursor: pointer">
+              导入学习数据
+              <input
+                type="file"
+                id="import-data-file"
+                accept=".json"
+                style="display: none"
+              />
+            </label>
+            <button class="btn btn-wrong" id="btn-clear-data">
+              清空本地答题记录
+            </button>
+          </div>
         </div>
       </section>
     </main>
 
+    <!-- 全局加载遮罩 -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
-      <p>正在加载题库…</p>
+      <p>正在装载北大中文考研真题库…</p>
     </div>
 
+    <!-- 浮动通知 Toast -->
     <div id="toast"></div>
-    <div
-      style="text-align: center; margin-top: 20px; color: #888; font-size: 14px"
-    >
-      👁️ 本站总访问量 <span id="busuanzi_value_site_pv"></span> 次 | 👤 访客人数
-      <span id="busuanzi_value_site_uv"></span> 人
-    </div>
-    <!-- 悬浮联系按钮 -->
-    <div
-      id="contact-btn"
-      onclick="document.getElementById('contact-modal').style.display = 'flex'"
-      style="
-        position: fixed;
-        bottom: 80px;
-        right: 20px;
-        background: #007bff;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 25px;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        font-size: 14px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      "
-    >
-      💬 联系作者 / 交流群
-    </div>
 
-    <!-- 悬浮会员中心按钮 -->
-    <div
-      id="member-btn"
-      onclick="document.getElementById('member-modal').style.display = 'flex'"
-      style="
-        position: fixed;
-        bottom: 140px;
-        right: 20px;
-        background: #28a745;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 25px;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        z-index: 999;
-        font-size: 14px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      "
-    >
-      🏷️ 会员中心 / 充值
-    </div>
-
-    <!-- 弹窗内容：联系方式 -->
-    <div
-      id="contact-modal"
-      onclick="if (event.target === this) this.style.display = 'none';"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-      "
-    >
-      <div
-        style="
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          max-width: 300px;
-          width: 80%;
-          text-align: center;
-          position: relative;
-          box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-        "
-      >
-        <span
-          onclick="
-            document.getElementById('contact-modal').style.display = 'none'
-          "
-          style="
-            position: absolute;
-            right: 15px;
-            top: 10px;
-            font-size: 22px;
-            cursor: pointer;
-            color: #999;
-          "
-          >&times;</span
-        >
-        <h3
-          style="
-            margin-top: 0;
-            margin-bottom: 12px;
-            color: #333;
-            font-size: 18px;
-          "
-        >
-          考研交流与反馈
-        </h3>
-        <img
-          src="wechat.png"
-          alt="微信二维码"
-          style="
-            width: 180px;
-            height: 180px;
-            object-fit: contain;
-            border-radius: 8px;
-          "
-        />
-        <p
-          style="
-            margin: 12px 0 0;
-            color: #444;
-            font-size: 14px;
-            font-weight: bold;
-          "
-        >
-          微信号：Xiao3297651464
-        </p>
-        <p style="margin: 6px 0 0; color: #888; font-size: 12px">
-          （欢迎加好友交流答疑、题目报错反馈）
-        </p>
-      </div>
-    </div>
-
-    <!-- 会员中心弹窗 -->
-    <div
-      id="member-modal"
-      onclick="if (event.target === this) this.style.display = 'none';"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 1010;
-        justify-content: center;
-        align-items: center;
-      "
-    >
-      <div
-        style="
-          background: #fff;
-          padding: 18px;
-          border-radius: 12px;
-          max-width: 560px;
-          width: 92%;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-          display: flex;
-          gap: 16px;
-          align-items: flex-start;
-        "
-      >
-        <div style="flex: 1">
-          <h3 style="margin: 0 0 8px">会员中心与充值</h3>
-          <p style="margin: 0 0 12px; color: #444">
-            请选择套餐并扫码支付。支付后请截图联系作者获取兑换码并在下方输入激活。
-          </p>
-
-          <div style="display: flex; gap: 10px; margin-bottom: 12px">
-            <div
-              style="
-                flex: 1;
-                border: 1px solid #eee;
-                padding: 10px;
-                border-radius: 8px;
-              "
-            >
-              <div style="font-weight: 700; font-size: 16px">套餐一 · 月卡</div>
-              <div style="color: #666; margin-top: 6px">
-                <strong>9.9 元 / 月</strong> · 无限次 AI 批改（有效期 30 天）
-              </div>
-            </div>
-            <div
-              style="
-                flex: 1;
-                border: 1px solid #eee;
-                padding: 10px;
-                border-radius: 8px;
-              "
-            >
-              <div style="font-weight: 700; font-size: 16px">套餐二 · 永久</div>
-              <div style="color: #666; margin-top: 6px">
-                <strong>49.9 元 / 永久</strong> · 永久无限次 AI 批改
-              </div>
-            </div>
-          </div>
-
-          <div
-            style="
-              display: flex;
-              gap: 8px;
-              align-items: center;
-              margin-bottom: 8px;
-            "
-          >
-            <img
-              src="wechat_pay.png"
-              alt="微信收款码"
-              style="
-                width: 140px;
-                height: 140px;
-                object-fit: contain;
-                border-radius: 8px;
-                border: 1px solid #eee;
-              "
-            />
-            <div style="flex: 1; color: #333; font-size: 14px">
-              <div style="font-weight: 700; margin-bottom: 6px">
-                微信扫码支付
-              </div>
-              <div style="color: #666">
-                扫码支付后，请截图并联系作者获取专属兑换码。输入兑换码后点击“立即激活/充值”。
-              </div>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 8px; align-items: center">
-            <input
-              id="activation-code-input"
-              type="text"
-              placeholder="输入兑换码（例如 MONTH-XXXXXX / PERM-XXXXXX）"
-              style="
-                flex: 1;
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-              "
-            />
-            <button
-              id="activation-code-submit"
-              style="
-                background: #ff8c00;
-                color: #fff;
-                border: none;
-                padding: 9px 12px;
-                border-radius: 6px;
-                font-weight: 700;
-                cursor: pointer;
-              "
-            >
-              立即激活/充值
-            </button>
-          </div>
-
-          <div
-            id="member-feedback"
-            style="
-              margin-top: 8px;
-              color: #28a745;
-              font-weight: 600;
-              display: none;
-            "
-          ></div>
-        </div>
-
-        <div style="width: 220px; text-align: left">
-          <h4 style="margin-top: 0">注意事项</h4>
-          <ul style="padding-left: 18px; color: #666">
-            <li>激活码仅通过作者分发，请勿相信第三方非官方渠道。</li>
-            <li>月卡到期后将失去会员资格，可重复兑换新的月卡激活码。</li>
-            <li>永久卡一经激活绑定账号，不可转移。</li>
-          </ul>
-          <div style="margin-top: 12px; font-size: 13px; color: #444">
-            <strong>当前会员状态：</strong>
-            <span id="member-status">未登录</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 登录弹窗：账号/密码 + 微信二维码说明 -->
-    <div
-      id="login-modal"
-      onclick="if (event.target === this) this.style.display = 'none';"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-      "
-    >
-      <div
-        style="
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          max-width: 520px;
-          width: 90%;
-          text-align: left;
-          position: relative;
-          box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-          display: flex;
-          gap: 16px;
-          align-items: flex-start;
-        "
-      >
-        <span
-          onclick="
-            document.getElementById('login-modal').style.display = 'none'
-          "
-          style="
-            position: absolute;
-            right: 14px;
-            top: 10px;
-            font-size: 22px;
-            cursor: pointer;
-            color: #999;
-          "
-          >&times;</span
-        >
-        <div style="flex: 1">
-          <h3 style="margin: 0 0 12px; font-size: 18px; color: #333">
-            用户登录
-          </h3>
-          <div style="margin-bottom: 10px">
-            <label
-              style="
-                display: block;
-                font-size: 13px;
-                color: #555;
-                margin-bottom: 6px;
-              "
-              >账号（示例：haida001）</label
-            >
-            <input
-              id="login-account"
-              type="text"
-              style="
-                width: 100%;
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-              "
-            />
-          </div>
-          <div style="margin-bottom: 12px">
-            <label
-              style="
-                display: block;
-                font-size: 13px;
-                color: #555;
-                margin-bottom: 6px;
-              "
-              >密码</label
-            >
-            <input
-              id="login-password"
-              type="password"
-              style="
-                width: 100%;
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-              "
-            />
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center">
-            <button
-              id="login-submit"
-              style="
-                background: #0056b3;
-                color: #fff;
-                border: none;
-                padding: 10px 14px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: bold;
-              "
-            >
-              登录
-            </button>
-            <button
-              id="login-logout"
-              style="
-                display: none;
-                background: #6c757d;
-                color: #fff;
-                border: none;
-                padding: 10px 14px;
-                border-radius: 6px;
-                cursor: pointer;
-              "
-            >
-              注销
-            </button>
-            <div style="color: #888; font-size: 13px; margin-left: 8px">
-              添加开发者微信，免费领取 haida 专属账号与初始额度
-            </div>
-          </div>
-        </div>
-        <div style="width: 200px; text-align: center">
-          <img
-            src="wechat.png"
-            alt="微信二维码"
-            style="
-              width: 160px;
-              height: 160px;
-              object-fit: contain;
-              border-radius: 8px;
-              display: block;
-              margin: 0 auto 8px;
-            "
-          />
-          <div style="font-size: 13px; color: #444; font-weight: bold">
-            添加开发者微信，免费领取 haida 专属账号与初始额度
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 脚本入口 -->
     <script src="script.js"></script>
   </body>
 </html>
