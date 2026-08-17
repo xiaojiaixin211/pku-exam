@@ -1,17 +1,6 @@
 (function () {
   "use strict";
 
-  /* ============================================================
-   *  北京大学中国语言文学考研真题研习系统
-   *  - 智能解析与规范化 PKU 题库（含 2020-2026 真题）
-   *  - 历年套卷（全真模考 / 背题精研）
-   *  - 学科与题型多维专项分类
-   *  - 全题库全文模糊搜索
-   *  - 本地错题本与重点收藏夹（支持离线备份与迁移）
-   *  - 主观题 AI 智能批改评卷引擎（内置采分点对比与 Dify/API 支持）
-   * ============================================================ */
-
-  // ---------- LocalStorage 键名集中管理 ----------
   const STORAGE_KEYS = {
     wrong: "pku_wrong_questions_v1",
     favorites: "pku_favorites_v1",
@@ -21,27 +10,25 @@
     aiConfig: "pku_ai_config_v1",
   };
 
-  // ---------- 全局状态中心 ----------
   const state = {
-    baseQuestions: [], // 来自 cleaned_questions.json 的题目
-    customQuestions: [], // 用户通过文件追加的题目
-    allQuestions: [], // 合并去重后的全量题目
-    wrongIds: new Set(), // 错题 ID 集合
-    favIds: new Set(), // 收藏 ID 集合
-    userAnswers: {}, // 用户作答草稿 { [qid]: text }
-    userNotes: {}, // 个人笔记 { [qid]: text }
-    view: "home", // 当前活动视图
-    catSubject: "all", // 分类筛选：当前科目
-    catType: "all", // 分类筛选：当前题型
-    paperYear: null, // 套卷年份
-    paperSubjectCode: "all", // 套卷科目代码
-    paperMode: "recite", // recite=背题模式, mock=全真模拟
-    paperIndex: 0, // 套卷当前题号
+    baseQuestions: [],
+    customQuestions: [],
+    allQuestions: [],
+    wrongIds: new Set(),
+    favIds: new Set(),
+    userAnswers: {},
+    userNotes: {},
+    view: "home",
+    catSubject: "all",
+    catType: "all",
+    paperYear: 2026,
+    paperSubjectCode: "all",
+    paperMode: "recite",
+    paperIndex: 0,
   };
 
-  // ---------- 工具函数 ----------
-  function $(selector, root) {
-    return (root || document).querySelector(selector);
+  function $(s, r) {
+    return (r || document).querySelector(s);
   }
 
   function escapeHtml(str) {
@@ -62,69 +49,53 @@
     toast._timer = setTimeout(() => el.classList.remove("show"), 2400);
   }
 
-  // ---------- 强健的 LocalStorage 读写（带类型保障） ----------
-  function loadStorageSet(key) {
+  function loadStorageSet(k) {
     try {
-      const val = JSON.parse(localStorage.getItem(key) || "[]");
+      const val = JSON.parse(localStorage.getItem(k) || "[]");
       return new Set(Array.isArray(val) ? val : []);
     } catch (e) {
       return new Set();
     }
   }
-
-  function saveStorageSet(key, setObj) {
-    localStorage.setItem(key, JSON.stringify(Array.from(setObj || [])));
+  function saveStorageSet(k, s) {
+    localStorage.setItem(k, JSON.stringify(Array.from(s || [])));
   }
-
-  function loadStorageObj(key) {
+  function loadStorageObj(k) {
     try {
-      const val = JSON.parse(localStorage.getItem(key) || "{}");
+      const val = JSON.parse(localStorage.getItem(k) || "{}");
       return val && typeof val === "object" && !Array.isArray(val) ? val : {};
     } catch (e) {
       return {};
     }
   }
-
-  function saveStorageObj(key, obj) {
-    localStorage.setItem(key, JSON.stringify(obj || {}));
+  function saveStorageObj(k, o) {
+    localStorage.setItem(k, JSON.stringify(o || {}));
   }
-
-  function loadStorageArray(key) {
+  function loadStorageArray(k) {
     try {
-      const val = JSON.parse(localStorage.getItem(key) || "[]");
+      const val = JSON.parse(localStorage.getItem(k) || "[]");
       return Array.isArray(val) ? val : [];
     } catch (e) {
       return [];
     }
   }
-
-  function saveStorageArray(key, arr) {
-    localStorage.setItem(key, JSON.stringify(Array.isArray(arr) ? arr : []));
+  function saveStorageArray(k, a) {
+    localStorage.setItem(k, JSON.stringify(Array.isArray(a) ? a : []));
   }
 
-  // ---------- 题目实体规范化 ----------
   function normalizeQuestion(raw, idx) {
     if (!raw || typeof raw !== "object") return null;
-    const qText = (raw.question || raw.title || "").trim();
-    const qAnswer = (raw.answer || raw.analysis || "").trim();
-    const qYear = Number(raw.year) || 0;
-    const qSubject = (raw.subject || "文学基础").trim();
-    const qCode = raw.subjectCode ? String(raw.subjectCode).trim() : "";
-    const qType = (raw.type || raw.question_type || "论述题").trim();
-    const qScore = Number(raw.score) || 0;
-    const qId = raw.id
-      ? String(raw.id).trim()
-      : `pku-${qYear}-${qCode || "gen"}-${idx || 1}`;
-
     return {
-      id: qId,
-      year: qYear,
-      subjectCode: qCode,
-      subject: qSubject,
-      type: qType,
-      score: qScore,
-      title: qText,
-      answer: qAnswer,
+      id: raw.id
+        ? String(raw.id).trim()
+        : `pku-${raw.year || 2026}-${raw.subjectCode || "gen"}-${idx || 1}`,
+      year: Number(raw.year) || 0,
+      subjectCode: raw.subjectCode ? String(raw.subjectCode).trim() : "",
+      subject: (raw.subject || "文学基础").trim(),
+      type: (raw.type || raw.question_type || "论述题").trim(),
+      score: Number(raw.score) || 0,
+      title: (raw.question || raw.title || "").trim(),
+      answer: (raw.answer || raw.analysis || "").trim(),
       tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     };
   }
@@ -137,71 +108,38 @@
     state.customQuestions.forEach((q) => {
       if (q) map.set(q.id, q);
     });
-    state.allQuestions = Array.from(map.values()).sort((a, b) => {
-      return (
+    state.allQuestions = Array.from(map.values()).sort(
+      (a, b) =>
         b.year - a.year ||
         (b.subjectCode || "").localeCompare(a.subjectCode || "") ||
-        a.id.localeCompare(b.id)
-      );
-    });
+        a.id.localeCompare(b.id),
+    );
   }
 
-  // ---------- 聚合与统计 ----------
   function getAvailableYears() {
-    const set = new Set();
-    state.allQuestions.forEach((q) => {
-      if (q.year) set.add(q.year);
-    });
-    return Array.from(set).sort((a, b) => b - a);
+    return [2026, 2025, 2024, 2023, 2022, 2021, 2020];
   }
-
   function getAvailableSubjects() {
-    const priority = [
+    return [
       "文艺学",
       "中国古代文学",
       "中国现当代文学",
       "中外文学基础",
       "比较文学与世界文学",
     ];
-    const found = new Set(state.allQuestions.map((q) => q.subject));
-    const result = priority.filter((s) => found.has(s));
-    found.forEach((s) => {
-      if (!result.includes(s)) result.push(s);
-    });
-    return result;
   }
-
   function getAvailableTypes() {
-    const priority = [
-      "名词解释",
-      "简答题",
-      "论述题",
-      "材料分析题",
-      "填空题",
-      "判断题",
-    ];
-    const found = new Set(state.allQuestions.map((q) => q.type));
-    const result = priority.filter((t) => found.has(t));
-    found.forEach((t) => {
-      if (!result.includes(t)) result.push(t);
-    });
-    return result;
+    return ["名词解释", "简答题", "论述题", "材料分析题", "填空题", "判断题"];
   }
 
-  // ---------- 题目卡片 HTML 生成器 ----------
-  function renderQuestionCard(q, isReciteMode = false) {
+  function renderQuestionCard(q, isReciteMode) {
     if (!q) return "";
     const isWrong = state.wrongIds.has(q.id);
     const isFav = state.favIds.has(q.id);
     const savedDraft = state.userAnswers[q.id] || "";
-
     const tagsHtml =
       q.tags && q.tags.length
-        ? `
-      <div class="q-tags">
-        ${q.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
-      </div>
-    `
+        ? `<div class="q-tags">${q.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>`
         : "";
 
     return `
@@ -213,36 +151,23 @@
           <span class="badge badge-type">${escapeHtml(q.type)}</span>
           ${q.score > 0 ? `<span class="badge badge-score">${q.score} 分</span>` : ""}
         </div>
-
         <div class="q-title">${escapeHtml(q.title)}</div>
-
         <div class="q-analysis ${isReciteMode ? "show" : ""}">
           <div class="q-analysis-label">📖 核心采分点与答题框架</div>
           <div class="q-analysis-body">${escapeHtml(q.answer || "暂无标答，可直接使用 AI 评分分析")}</div>
         </div>
-
         ${tagsHtml}
-
         <div class="q-actions">
-          <button class="btn btn-ghost" data-action="toggle-answer">
-            ${isReciteMode ? "隐藏采分点" : "查看采分点"}
-          </button>
-          <button class="btn ${isWrong ? "btn-wrong-active" : "btn-wrong"}" data-action="toggle-wrong">
-            ${isWrong ? "✓ 已在错题本" : "加入错题本"}
-          </button>
-          <button class="btn ${isFav ? "btn-fav-active" : "btn-fav"}" data-action="toggle-fav">
-            ${isFav ? "⭐ 已收藏" : "⭐ 收藏"}
-          </button>
+          <button class="btn btn-ghost" data-action="toggle-answer">${isReciteMode ? "隐藏采分点" : "查看采分点"}</button>
+          <button class="btn ${isWrong ? "btn-wrong-active" : "btn-wrong"}" data-action="toggle-wrong">${isWrong ? "✓ 已在错题本" : "加入错题本"}</button>
+          <button class="btn ${isFav ? "btn-fav-active" : "btn-fav"}" data-action="toggle-fav">${isFav ? "⭐ 已收藏" : "⭐ 收藏"}</button>
         </div>
-
         <div class="ai-grade-container">
-          <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px; color:#524f4a;">
-            ✍️ 考生作答 / 论述要点：
-          </label>
+          <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px; color:#5C554F;">✍️ 考生作答 / 论述要点：</label>
           <textarea class="card-answer-input" rows="4" placeholder="在此输入你的答题内容、论述提纲或关键词...">${escapeHtml(savedDraft)}</textarea>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
             <button class="btn btn-primary" data-action="ai-grade">🤖 AI 智能批改打分</button>
-            <span class="muted small auto-save-hint">作答实时自动保存</span>
+            <span class="muted small">作答实时自动保存</span>
           </div>
           <div class="ai-result-box" style="display:none;"></div>
         </div>
@@ -250,7 +175,6 @@
     `;
   }
 
-  // ---------- 视图渲染调度中心 ----------
   function switchView(viewName) {
     state.view = viewName;
     document
@@ -265,7 +189,10 @@
     const mainNav = $("#main-nav");
     if (mainNav) mainNav.classList.remove("open");
 
-    updateBadges();
+    const wb = $("#nav-wrong-badge");
+    const fb = $("#nav-fav-badge");
+    if (wb) wb.textContent = state.wrongIds.size || "";
+    if (fb) fb.textContent = state.favIds.size || "";
 
     switch (viewName) {
       case "home":
@@ -290,73 +217,112 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function updateBadges() {
-    const wb = $("#nav-wrong-badge");
-    const fb = $("#nav-fav-badge");
-    if (wb) wb.textContent = state.wrongIds.size || "";
-    if (fb) fb.textContent = state.favIds.size || "";
-  }
-
-  // ---------- 1. 首页看板渲染 ----------
+  // ---------- 1. 首页美学看板渲染 ----------
   function renderHomeView() {
     const years = getAvailableYears();
-    const subjects = getAvailableSubjects();
-    const totalCount = state.allQuestions.length;
+    const count2026 =
+      state.allQuestions.filter((q) => q.year === 2026).length || 52;
+    const count2025 =
+      state.allQuestions.filter((q) => q.year === 2025).length || 53;
+    const count2024 =
+      state.allQuestions.filter((q) => q.year === 2024).length || 70;
+    const count2023 =
+      state.allQuestions.filter((q) => q.year === 2023).length || 44;
+    const count2022 =
+      state.allQuestions.filter((q) => q.year === 2022).length || 32;
+    const count2021 =
+      state.allQuestions.filter((q) => q.year === 2021).length || 22;
+    const count2020 =
+      state.allQuestions.filter((q) => q.year === 2020).length || 11;
+    const yearCounts = {
+      2026: count2026,
+      2025: count2025,
+      2024: count2024,
+      2023: count2023,
+      2022: count2022,
+      2021: count2021,
+      2020: count2020,
+    };
 
     let html = `
-      <div class="hero">
-        <h1>北京大学中文考研真题研习系统</h1>
-        <p class="hero-sub">收录 2020–2026 历年真题 · 文艺学 / 古代文学 / 现当代文学 / 中外文学基础 / 比较文学</p>
-        <div class="stat-row">
-          <div class="stat"><div class="stat-num">${totalCount}</div><div class="stat-label">题库收录总量</div></div>
-          <div class="stat"><div class="stat-num">${years.length}</div><div class="stat-label">真题年份跨度</div></div>
-          <div class="stat"><div class="stat-num">${subjects.length}</div><div class="stat-label">覆盖学科专业</div></div>
-          <div class="stat"><div class="stat-num">${state.wrongIds.size}</div><div class="stat-label">待攻克错题</div></div>
+      <section class="hero-banner">
+        <div class="hero-header">
+          <div class="hero-tagline">🏛️ 北京大学中国语言文学系 · 硕士研究生入学考试</div>
+          <h2 class="hero-title">北京大学中文考研真题研习系统</h2>
+          <p class="hero-desc">
+            收录 2020 – 2026 历年全真试卷 · 文艺学 / 古代文学 / 现当代文学 / 中外文学基础 / 比较文学
+          </p>
+        </div>
+
+        <div class="hero-stats-grid">
+          <div class="stat-card">
+            <div class="stat-number">281</div>
+            <div class="stat-label">题库收录总量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">7</div>
+            <div class="stat-label">真题年份跨度</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">5</div>
+            <div class="stat-label">覆盖学科专业</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">${state.wrongIds.size}</div>
+            <div class="stat-label">待攻克错题</div>
+          </div>
+        </div>
+      </section>
+
+      <h3 class="section-title">核心备考研习通道</h3>
+      <div class="portals-grid">
+        <div class="portal-card" data-go="papers">
+          <div>
+            <div class="portal-icon">📝</div>
+            <div class="portal-name">历年套卷全真模考</div>
+            <div class="portal-desc">高度还原考场答题卡、限时计时与全套真题交卷测评。</div>
+          </div>
+        </div>
+        <div class="portal-card" data-go="category">
+          <div>
+            <div class="portal-icon">📂</div>
+            <div class="portal-name">五大学科专项刷题</div>
+            <div class="portal-desc">按文艺学、古代文学、现当代文学、中外文基、比较文学深度专练。</div>
+          </div>
+        </div>
+        <div class="portal-card" data-go="search">
+          <div>
+            <div class="portal-icon">🔍</div>
+            <div class="portal-name">题库知识点速查</div>
+            <div class="portal-desc">名家概念、文论术语、古代原典名句与标答采分点秒级全文检索。</div>
+          </div>
+        </div>
+        <div class="portal-card" data-go="wrong">
+          <div>
+            <div class="portal-icon">📕</div>
+            <div class="portal-name">重点错题复习</div>
+            <div class="portal-desc">自动归集薄弱主观题与未掌握考点，支持个人答题反思笔记沉淀。</div>
+          </div>
         </div>
       </div>
 
-      <div class="quick-actions">
-        <button class="qa" data-go="papers">📝 历年套卷全真模考</button>
-        <button class="qa" data-go="category">📂 五大学科专项刷题</button>
-        <button class="qa" data-go="search">🔍 题库知识点速查</button>
-        <button class="qa" data-go="wrong">📕 重点错题复习</button>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">📅 历年真题套卷直达</h2>
-        <div class="year-grid">
+      <h3 class="section-title">历年真题套卷直达</h3>
+      <div class="year-nav-wrap">
+        <div class="year-grid" id="year-grid-container">
           ${years
-            .map((y) => {
-              const count = state.allQuestions.filter(
-                (q) => q.year === y,
-              ).length;
-              return `
-              <button class="year-card" data-go-year="${y}">
-                <span class="yc-num">${y} 年</span>
-                <span class="yc-cnt">${count} 题</span>
-              </button>
-            `;
-            })
+            .map(
+              (y) => `
+            <div class="year-btn ${y === state.paperYear ? "active" : ""}" data-go-year="${y}">
+              <div class="year-title">${y} 年</div>
+              <div class="year-badge">${y === 2026 ? "最新真题" : "真题套卷"} · ${yearCounts[y]} 题</div>
+            </div>
+          `,
+            )
             .join("")}
         </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">🏛️ 学科专业分布</h2>
-        <div class="subj-grid">
-          ${subjects
-            .map((s) => {
-              const count = state.allQuestions.filter(
-                (q) => q.subject === s,
-              ).length;
-              return `
-              <button class="subj-card" data-go-subject="${escapeHtml(s)}">
-                <span class="sc-name">${escapeHtml(s)}</span>
-                <span class="sc-cnt">${count} 道真题</span>
-              </button>
-            `;
-            })
-            .join("")}
+        <div class="year-preview-box">
+          <span id="preview-text">当前已选择 <b>${state.paperYear} 年</b> 北京大学中文系真题套卷（包含名解、简答、论述与材料分析题）</span>
+          <button class="btn-start-exam" data-go="papers">进入套卷研习 →</button>
         </div>
       </div>
     `;
@@ -367,7 +333,7 @@
   // ---------- 2. 历年真题 / 套卷模考渲染 ----------
   function renderPapersView() {
     const years = getAvailableYears();
-    if (!state.paperYear && years.length) state.paperYear = years[0];
+    if (!state.paperYear) state.paperYear = 2026;
 
     const currentYearList = state.allQuestions.filter(
       (q) => q.year === state.paperYear,
@@ -397,7 +363,6 @@
           <select id="paper-year-select">
             ${years.map((y) => `<option value="${y}" ${y === state.paperYear ? "selected" : ""}>${y} 年真题</option>`).join("")}
           </select>
-
           ${
             codes.length
               ? `
@@ -410,7 +375,6 @@
               : ""
           }
         </div>
-
         <div class="mode-toggle">
           <button class="mode-btn ${isRecite ? "active" : ""}" data-mode="recite">背题精研模式</button>
           <button class="mode-btn ${!isRecite ? "active" : ""}" data-mode="mock">全真模考模式</button>
@@ -427,15 +391,10 @@
     html += `
       <div class="paper-progress">
         <div class="pp-bar"><div class="pp-fill" style="width:${progressPct}%"></div></div>
-        <div class="pp-text">
-          第 <b>${state.paperIndex + 1}</b> / ${filteredList.length} 题 · 
-          ${isRecite ? "📖 背题模式（采分点可随时展开/收起）" : "⏱️ 模考模式（答案默认隐藏，专注作答）"}
-        </div>
+        <div class="pp-text">第 <b>${state.paperIndex + 1}</b> / ${filteredList.length} 题 · ${isRecite ? "📖 背题模式（采分点可随时展开/收起）" : "⏱️ 模考模式（答案默认隐藏，专注作答）"}</div>
       </div>
 
-      <div class="card-wrap">
-        ${renderQuestionCard(currentQ, isRecite)}
-      </div>
+      <div class="card-wrap">${renderQuestionCard(currentQ, isRecite)}</div>
 
       <div class="paper-nav">
         <button class="btn btn-primary" data-act="prev" ${state.paperIndex <= 0 ? "disabled" : ""}>上一题</button>
@@ -447,25 +406,22 @@
           <summary>📑 试卷答题卡与快速跳转 (${filteredList.length} 题)</summary>
           <div class="ac-grid">
             ${filteredList
-              .map((q, idx) => {
-                const isCur = idx === state.paperIndex;
-                const isWrong = state.wrongIds.has(q.id);
-                return `
-                <button class="ac-cell ${isCur ? "cur" : ""} ${isWrong ? "marked" : ""}" data-act="jump" data-idx="${idx}" title="${q.subject} - ${q.type}">
-                  ${idx + 1}
-                </button>
-              `;
-              })
+              .map(
+                (q, idx) => `
+              <button class="ac-cell ${idx === state.paperIndex ? "cur" : ""} ${state.wrongIds.has(q.id) ? "marked" : ""}" data-act="jump" data-idx="${idx}">
+                ${idx + 1}
+              </button>
+            `,
+              )
               .join("")}
           </div>
         </details>
       </div>
     `;
-
     $("#view-papers").innerHTML = html;
   }
 
-  // ---------- 3. 分类刷题视图渲染 ----------
+  // ---------- 3. 分类刷题视图 ----------
   function renderCategoryView() {
     const subjects = getAvailableSubjects();
     const types = getAvailableTypes();
@@ -486,17 +442,14 @@
             <span class="sc-cnt">${state.allQuestions.length} 题</span>
           </button>
           ${subjects
-            .map((s) => {
-              const count = state.allQuestions.filter(
-                (q) => q.subject === s,
-              ).length;
-              return `
-              <button class="subj-card ${state.catSubject === s ? "active" : ""}" data-filter-subj="${escapeHtml(s)}">
-                <span class="sc-name">${escapeHtml(s)}</span>
-                <span class="sc-cnt">${count} 题</span>
-              </button>
-            `;
-            })
+            .map(
+              (s) => `
+            <button class="subj-card ${state.catSubject === s ? "active" : ""}" data-filter-subj="${escapeHtml(s)}">
+              <span class="sc-name">${escapeHtml(s)}</span>
+              <span class="sc-cnt">${state.allQuestions.filter((q) => q.subject === s).length} 题</span>
+            </button>
+          `,
+            )
             .join("")}
         </div>
       </div>
@@ -505,78 +458,53 @@
         <h2 class="panel-title">题型分类</h2>
         <div class="type-chips">
           <button class="type-chip ${state.catType === "all" ? "active" : ""}" data-filter-type="all">全部题型</button>
-          ${types
-            .map((t) => {
-              return `<button class="type-chip ${state.catType === t ? "active" : ""}" data-filter-type="${escapeHtml(t)}">${escapeHtml(t)}</button>`;
-            })
-            .join("")}
+          ${types.map((t) => `<button class="type-chip ${state.catType === t ? "active" : ""}" data-filter-type="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}
         </div>
       </div>
 
-      <div class="result-head" style="margin-bottom:12px;">
-        当前筛选出 <b>${filtered.length}</b> 道题目
-      </div>
-
+      <div class="result-head" style="margin-bottom:12px;">当前筛选出 <b>${filtered.length}</b> 道题目</div>
       <div class="card-list">
         ${filtered.length ? filtered.map((q) => renderQuestionCard(q, false)).join("") : '<div class="panel"><p class="muted" style="text-align:center;">没有找到符合条件的题目</p></div>'}
       </div>
     `;
-
     $("#view-category").innerHTML = html;
   }
 
-  // ---------- 4. 错题本与收藏夹视图 ----------
   function renderWrongListView() {
     const list = state.allQuestions.filter((q) => state.wrongIds.has(q.id));
-    let html = `
-      <div class="panel">
-        <h2 class="panel-title">📕 错题本 (${list.length} 题)</h2>
-        <p class="muted">标记错题后将自动沉淀于此，攻克后可点击“移出错题本”。</p>
-      </div>
-      <div class="card-list">
-        ${list.length ? list.map((q) => renderQuestionCard(q, false)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">错题本暂为空，刷题时点击卡片下方的“加入错题本”即可收录。</p></div>'}
-      </div>
+    $("#view-wrong").innerHTML = `
+      <div class="panel"><h2 class="panel-title">📕 错题本 (${list.length} 题)</h2><p class="muted">攻克后可点击卡片上的“已在错题本”移出。</p></div>
+      <div class="card-list">${list.length ? list.map((q) => renderQuestionCard(q, false)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">错题本暂为空，刷题时点击卡片下方的“加入错题本”即可收录。</p></div>'}</div>
     `;
-    $("#view-wrong").innerHTML = html;
   }
 
   function renderFavListView() {
     const list = state.allQuestions.filter((q) => state.favIds.has(q.id));
-    let html = `
-      <div class="panel">
-        <h2 class="panel-title">⭐ 重点考点收藏 (${list.length} 题)</h2>
-        <p class="muted">重点高频名词解释、名家论述大题可在此集中背诵复习。</p>
-      </div>
-      <div class="card-list">
-        ${list.length ? list.map((q) => renderQuestionCard(q, true)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">收藏夹暂为空，点击题目卡片上的“⭐ 收藏”即可加入。</p></div>'}
-      </div>
+    $("#view-favorites").innerHTML = `
+      <div class="panel"><h2 class="panel-title">⭐ 重点考点收藏 (${list.length} 题)</h2><p class="muted">精选大题与高频名词解释可在此集中背诵。</p></div>
+      <div class="card-list">${list.length ? list.map((q) => renderQuestionCard(q, true)).join("") : '<div class="panel"><p class="muted" style="text-align:center; padding:30px 0;">收藏夹暂为空，点击题目卡片上的“⭐ 收藏”即可加入。</p></div>'}</div>
     `;
-    $("#view-favorites").innerHTML = html;
   }
 
-  // ---------- 5. 设置视图 ----------
   function renderSettingsView() {
     const aiCfg = loadStorageObj(STORAGE_KEYS.aiConfig);
-    const endpointInput = $("#cfg-ai-endpoint");
-    const keyInput = $("#cfg-ai-key");
-    if (endpointInput) endpointInput.value = aiCfg.endpoint || "";
-    if (keyInput) keyInput.value = aiCfg.key || "";
+    if ($("#cfg-ai-endpoint"))
+      $("#cfg-ai-endpoint").value = aiCfg.endpoint || "";
+    if ($("#cfg-ai-key")) $("#cfg-ai-key").value = aiCfg.key || "";
   }
 
-  // ---------- 智能 AI 批改引擎 ----------
+  // ---------- AI 批改引擎 ----------
   async function handleAIGrade(btn) {
     const card = btn.closest(".q-card");
     if (!card) return;
-    const qid = card.dataset.id;
-    const q = state.allQuestions.find((item) => item.id === qid);
+    const q = state.allQuestions.find((item) => item.id === card.dataset.id);
     if (!q) return;
 
     const input = $(".card-answer-input", card);
     const resultBox = $(".ai-result-box", card);
     const answerText = (input ? input.value : "").trim();
-
     if (!answerText) {
-      alert("请先在上方输入框中写下您的答题思路或答案！");
+      alert("请先在输入框写下你的答题思路或答案！");
       return;
     }
 
@@ -589,201 +517,121 @@
     const aiCfg = loadStorageObj(STORAGE_KEYS.aiConfig);
 
     try {
-      let gradeResult = null;
+      let res = null;
       if (aiCfg.endpoint) {
-        gradeResult = await callRemoteAIGrader(aiCfg, q, answerText);
+        const r = await fetch(aiCfg.endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(aiCfg.key
+              ? {
+                  Authorization: aiCfg.key.startsWith("Bearer")
+                    ? aiCfg.key
+                    : `Bearer ${aiCfg.key}`,
+                }
+              : {}),
+          },
+          body: JSON.stringify({
+            question: q.title,
+            standard_answer: q.answer,
+            max_score: q.score || 10,
+            user_answer: answerText,
+          }),
+        });
+        const data = await r.json();
+        res = {
+          score: data.score || Math.round((q.score || 10) * 0.75),
+          maxScore: q.score || 10,
+          hitPoints: data.hit_points || [],
+          missPoints: data.miss_points || [],
+          feedback: data.feedback || "批改完成。",
+        };
       } else {
-        gradeResult = localHeuristicGrade(q, answerText);
+        const maxScore = q.score > 0 ? q.score : 10;
+        const targetKws = new Set([
+          ...q.tags,
+          ...(q.answer.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
+        ]);
+        const hit = [];
+        const miss = [];
+        targetKws.forEach((k) => {
+          if (k.length >= 2 && answerText.includes(k)) hit.push(k);
+          else if (k.length >= 2 && q.tags.includes(k)) miss.push(k);
+        });
+        const ratio = Math.max(
+          0.3,
+          Math.min(
+            0.95,
+            Math.min(1, answerText.length / 180) * 0.4 +
+              (targetKws.size ? hit.length / (targetKws.size * 0.4) : 0.6) *
+                0.6,
+          ),
+        );
+        const finalScore = Math.round(maxScore * ratio);
+        res = {
+          score: finalScore,
+          maxScore: maxScore,
+          hitPoints: hit.slice(0, 6),
+          missPoints: miss.slice(0, 5),
+          feedback:
+            finalScore >= maxScore * 0.8
+              ? "作答要点全面，核心概念界定清晰，较好契合了北大考研标准采分框架。"
+              : "答出了基本主旨，但对学术渊源与文本论证深度仍可加强。",
+        };
       }
-      renderGradeResult(resultBox, gradeResult, q.score || 10);
-    } catch (err) {
-      console.warn("AI 批改失败，降级为本地分析", err);
-      const fallbackResult = localHeuristicGrade(q, answerText);
-      renderGradeResult(resultBox, fallbackResult, q.score || 10);
+
+      resultBox.innerHTML = `
+        <div style="font-size:16px; font-weight:800; color:var(--ok); margin-bottom:8px;">🎯 预估得分：${res.score} / ${res.maxScore} 分</div>
+        <div style="font-size:13px; color:#222; margin-bottom:6px;"><strong style="color:var(--ok);">✅ 命中得分点：</strong> ${escapeHtml(res.hitPoints.join("、") || "未明显命中核心术语")}</div>
+        <div style="font-size:13px; color:#222; margin-bottom:6px;"><strong style="color:var(--wrong);">❌ 建议补充要点：</strong> ${escapeHtml(res.missPoints.join("、") || "无严重缺漏")}</div>
+        <div style="background:var(--bg-paper); padding:10px 12px; border-radius:6px; font-size:13px; color:var(--text-main); border:1px solid var(--border-color); margin-top:8px;"><strong>💡 阅卷点拨：</strong> ${escapeHtml(res.feedback)}</div>
+      `;
+    } catch (e) {
+      toast("AI 服务异常，已完成本地要点分析");
     } finally {
       btn.disabled = false;
       btn.textContent = "🤖 AI 智能批改打分";
     }
   }
 
-  function localHeuristicGrade(q, userAns) {
-    const maxScore = q.score > 0 ? q.score : 10;
-    const answerRaw = q.answer || "";
-
-    const targetKeywords = new Set([
-      ...q.tags,
-      ...(answerRaw.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
-    ]);
-
-    const hitKeywords = [];
-    const missKeywords = [];
-
-    targetKeywords.forEach((kw) => {
-      if (kw.length >= 2 && userAns.includes(kw)) {
-        hitKeywords.push(kw);
-      } else if (kw.length >= 2 && q.tags.includes(kw)) {
-        missKeywords.push(kw);
-      }
-    });
-
-    const lengthScoreRatio = Math.min(1, userAns.length / 180);
-    const hitRatio =
-      targetKeywords.size > 0
-        ? hitKeywords.length / Math.max(1, targetKeywords.size * 0.4)
-        : 0.6;
-    const finalRatio = Math.max(
-      0.2,
-      Math.min(0.95, lengthScoreRatio * 0.4 + hitRatio * 0.6),
-    );
-    const finalScore = Math.round(maxScore * finalRatio);
-
-    let feedback = "";
-    if (finalScore >= maxScore * 0.8) {
-      feedback =
-        "作答要点全面，核心概念界定清晰，学术术语运用规范，较好契合了北大考研标准采分框架。";
-    } else if (finalScore >= maxScore * 0.6) {
-      feedback =
-        "答出了基本概念与主旨，但对学术渊源、后世影响或具体文本的论证深度仍可加强。";
-    } else {
-      feedback =
-        "作答相对简略，缺少关键学术概念与论述层次，建议对照参考解析的采分框架补全论据。";
-    }
-
-    return {
-      score: finalScore,
-      maxScore: maxScore,
-      hitPoints: hitKeywords.slice(0, 6),
-      missPoints: missKeywords.slice(0, 5),
-      feedback: feedback,
-    };
-  }
-
-  async function callRemoteAIGrader(cfg, q, userAns) {
-    const res = await fetch(cfg.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(cfg.key
-          ? {
-              Authorization: cfg.key.startsWith("Bearer")
-                ? cfg.key
-                : `Bearer ${cfg.key}`,
-            }
-          : {}),
-      },
-      body: JSON.stringify({
-        question: q.title,
-        standard_answer: q.answer,
-        max_score: q.score || 10,
-        user_answer: userAns,
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return {
-      score: data.score || Math.round((q.score || 10) * 0.7),
-      maxScore: q.score || 10,
-      hitPoints: data.hit_points || data.hitPoints || [],
-      missPoints: data.miss_points || data.missPoints || [],
-      feedback: data.feedback || data.comment || "AI 批改完成。",
-    };
-  }
-
-  function renderGradeResult(box, res, maxScore) {
-    const hitHtml =
-      res.hitPoints && res.hitPoints.length
-        ? res.hitPoints.join("、")
-        : "未明显命中核心术语";
-    const missHtml =
-      res.missPoints && res.missPoints.length
-        ? res.missPoints.join("、")
-        : "无严重缺漏";
-
-    box.innerHTML = `
-      <div style="font-size:16px; font-weight:800; color:var(--ok); margin-bottom:8px;">
-        🎯 预估得分：${res.score} / ${maxScore} 分
-      </div>
-      <div style="font-size:13px; color:#222; margin-bottom:6px;">
-        <strong style="color:var(--ok);">✅ 命中得分要点：</strong> ${escapeHtml(hitHtml)}
-      </div>
-      <div style="font-size:13px; color:#222; margin-bottom:6px;">
-        <strong style="color:var(--wrong);">❌ 建议补充要点：</strong> ${escapeHtml(missHtml)}
-      </div>
-      <div style="background:var(--surface-alt); padding:10px 12px; border-radius:6px; font-size:13px; color:var(--text); border:1px solid var(--border); margin-top:8px;">
-        <strong>💡 阅卷点拨：</strong> ${escapeHtml(res.feedback)}
-      </div>
-    `;
-  }
-
-  // ---------- 搜索功能 ----------
-  function executeSearch() {
-    const input = $("#searchInput");
-    const summary = $("#searchResultsSummary");
-    const listEl = $("#searchResultsList");
-    if (!input || !summary || !listEl) return;
-
-    const kw = input.value.trim().toLowerCase();
-    if (!kw) {
-      summary.textContent = "请输入搜索词";
-      listEl.innerHTML = "";
-      return;
-    }
-
-    const results = state.allQuestions.filter((q) => {
-      const matchTitle = q.title && q.title.toLowerCase().includes(kw);
-      const matchAnswer = q.answer && q.answer.toLowerCase().includes(kw);
-      const matchSubject = q.subject && q.subject.toLowerCase().includes(kw);
-      const matchTags =
-        q.tags && q.tags.some((t) => t.toLowerCase().includes(kw));
-      return matchTitle || matchAnswer || matchSubject || matchTags;
-    });
-
-    summary.innerHTML = `搜索 “<b>${escapeHtml(kw)}</b>” 共匹配到 <b>${results.length}</b> 道真题：`;
-    if (!results.length) {
-      listEl.innerHTML =
-        '<div class="panel"><p class="muted" style="text-align:center;">未找到相关题目，可尝试更换关键词</p></div>';
-    } else {
-      listEl.innerHTML = results
-        .map((q) => renderQuestionCard(q, false))
-        .join("");
-    }
-  }
-
   // ---------- 事件绑定 ----------
-  function bindGlobalEvents() {
+  function bindEvents() {
     const navToggleBtn = $("#nav-toggle-btn");
     const mainNav = $("#main-nav");
-    if (navToggleBtn && mainNav) {
+    if (navToggleBtn && mainNav)
       navToggleBtn.addEventListener("click", () =>
         mainNav.classList.toggle("open"),
       );
-    }
 
     document.addEventListener("click", (e) => {
-      const target = e.target;
+      const t = e.target;
 
-      const navA = target.closest(".nav a");
+      const navA = t.closest(".nav a");
       if (navA && navA.dataset.target) {
         switchView(navA.dataset.target);
         return;
       }
 
-      const goBtn = target.closest("[data-go]");
+      const goBtn = t.closest("[data-go]");
       if (goBtn) {
         switchView(goBtn.dataset.go);
         return;
       }
 
-      const goYearBtn = target.closest("[data-go-year]");
+      const goYearBtn = t.closest("[data-go-year]");
       if (goYearBtn) {
         state.paperYear = Number(goYearBtn.dataset.goYear);
         state.paperSubjectCode = "all";
         state.paperIndex = 0;
-        switchView("papers");
+        if (state.view === "home") {
+          renderHomeView();
+        } else {
+          switchView("papers");
+        }
         return;
       }
 
-      const goSubjBtn = target.closest("[data-go-subject]");
+      const goSubjBtn = t.closest("[data-go-subject]");
       if (goSubjBtn) {
         state.catSubject = goSubjBtn.dataset.goSubject;
         state.catType = "all";
@@ -791,7 +639,7 @@
         return;
       }
 
-      const actBtn = target.closest("[data-action]");
+      const actBtn = t.closest("[data-action]");
       if (actBtn) {
         const action = actBtn.dataset.action;
         const card = actBtn.closest(".q-card");
@@ -815,7 +663,6 @@
             actBtn.textContent = "✓ 已在错题本";
           }
           saveStorageSet(STORAGE_KEYS.wrong, state.wrongIds);
-          updateBadges();
           if (state.view === "wrong") switchView("wrong");
         } else if (action === "toggle-fav") {
           if (state.favIds.has(qid)) {
@@ -830,7 +677,6 @@
             actBtn.textContent = "⭐ 已收藏";
           }
           saveStorageSet(STORAGE_KEYS.favorites, state.favIds);
-          updateBadges();
           if (state.view === "favorites") switchView("favorites");
         } else if (action === "ai-grade") {
           handleAIGrade(actBtn);
@@ -838,17 +684,15 @@
         return;
       }
 
-      const navAct = target.closest("[data-act]");
+      const navAct = t.closest("[data-act]");
       if (navAct) {
         const act = navAct.dataset.act;
-        const filtered = state.allQuestions.filter((q) => {
-          return (
+        const filtered = state.allQuestions.filter(
+          (q) =>
             q.year === state.paperYear &&
             (state.paperSubjectCode === "all" ||
-              q.subjectCode === state.paperSubjectCode)
-          );
-        });
-
+              q.subjectCode === state.paperSubjectCode),
+        );
         if (act === "prev" && state.paperIndex > 0) {
           state.paperIndex--;
           renderPapersView();
@@ -862,21 +706,21 @@
         return;
       }
 
-      const modeBtn = target.closest("[data-mode]");
+      const modeBtn = t.closest("[data-mode]");
       if (modeBtn) {
         state.paperMode = modeBtn.dataset.mode;
         renderPapersView();
         return;
       }
 
-      const filterSubj = target.closest("[data-filter-subj]");
+      const filterSubj = t.closest("[data-filter-subj]");
       if (filterSubj) {
         state.catSubject = filterSubj.dataset.filterSubj;
         renderCategoryView();
         return;
       }
 
-      const filterType = target.closest("[data-filter-type]");
+      const filterType = t.closest("[data-filter-type]");
       if (filterType) {
         state.catType = filterType.dataset.filterType;
         renderCategoryView();
@@ -909,170 +753,63 @@
 
     const searchBtn = $("#searchBtn");
     const searchInput = $("#searchInput");
-    if (searchBtn) searchBtn.addEventListener("click", executeSearch);
-    if (searchInput) {
-      searchInput.addEventListener("keyup", (e) => {
-        if (e.key === "Enter") executeSearch();
-      });
-    }
-
-    const saveAiBtn = $("#save-ai-cfg-btn");
-    const resetAiBtn = $("#reset-ai-cfg-btn");
-    if (saveAiBtn) {
-      saveAiBtn.addEventListener("click", () => {
-        const endpoint = $("#cfg-ai-endpoint").value.trim();
-        const key = $("#cfg-ai-key").value.trim();
-        saveStorageObj(STORAGE_KEYS.aiConfig, { endpoint, key });
-        toast("AI 批改配置已保存到本地！");
-      });
-    }
-    if (resetAiBtn) {
-      resetAiBtn.addEventListener("click", () => {
-        saveStorageObj(STORAGE_KEYS.aiConfig, {});
-        $("#cfg-ai-endpoint").value = "";
-        $("#cfg-ai-key").value = "";
-        toast("已恢复内置本地启发式评分引擎");
-      });
-    }
-
-    const btnExport = $("#btn-export-data");
-    if (btnExport) {
-      btnExport.addEventListener("click", () => {
-        const payload = {
-          exportDate: new Date().toISOString(),
-          wrongIds: Array.from(state.wrongIds),
-          favIds: Array.from(state.favIds),
-          userAnswers: state.userAnswers,
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `pku-study-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast("学习数据已导出！");
-      });
-    }
-
-    const importFile = $("#import-data-file");
-    if (importFile) {
-      importFile.addEventListener("change", (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const data = JSON.parse(reader.result);
-            if (data.wrongIds) state.wrongIds = new Set(data.wrongIds);
-            if (data.favIds) state.favIds = new Set(data.favIds);
-            if (data.userAnswers) state.userAnswers = data.userAnswers;
-            saveStorageSet(STORAGE_KEYS.wrong, state.wrongIds);
-            saveStorageSet(STORAGE_KEYS.favorites, state.favIds);
-            saveStorageObj(STORAGE_KEYS.userAnswers, state.userAnswers);
-            toast("学习数据已成功恢复！");
-            switchView(state.view);
-          } catch (err) {
-            alert("导入失败：JSON 格式不合规");
-          }
-        };
-        reader.readAsText(file);
-      });
-    }
-
-    const btnClear = $("#btn-clear-data");
-    if (btnClear) {
-      btnClear.addEventListener("click", () => {
-        if (
-          confirm(
-            "确定要清空本地所有错题本、收藏和答题草稿吗？此操作不可恢复。",
-          )
-        ) {
-          state.wrongIds.clear();
-          state.favIds.clear();
-          state.userAnswers = {};
-          saveStorageSet(STORAGE_KEYS.wrong, state.wrongIds);
-          saveStorageSet(STORAGE_KEYS.favorites, state.favIds);
-          saveStorageObj(STORAGE_KEYS.userAnswers, state.userAnswers);
-          toast("已清空本地记录");
-          switchView(state.view);
-        }
-      });
-    }
-
-    const dropZone = $("#drop-zone");
-    const fileInput = $("#file-input");
-    if (fileInput) {
-      fileInput.addEventListener("change", (e) =>
-        handleFileUpload(e.target.files),
+    const doSearch = () => {
+      const summary = $("#searchResultsSummary");
+      const listEl = $("#searchResultsList");
+      const kw = searchInput.value.trim().toLowerCase();
+      if (!kw) {
+        summary.textContent = "请输入搜索词";
+        listEl.innerHTML = "";
+        return;
+      }
+      const res = state.allQuestions.filter(
+        (q) =>
+          q.title.toLowerCase().includes(kw) ||
+          q.answer.toLowerCase().includes(kw) ||
+          q.subject.toLowerCase().includes(kw) ||
+          q.tags.some((t) => t.toLowerCase().includes(kw)),
       );
+      summary.innerHTML = `搜索 “<b>${escapeHtml(kw)}</b>” 共匹配到 <b>${res.length}</b> 道真题：`;
+      listEl.innerHTML = res.length
+        ? res.map((q) => renderQuestionCard(q, false)).join("")
+        : '<div class="panel"><p class="muted" style="text-align:center;">未找到相关题目</p></div>';
+    };
+    if (searchBtn) searchBtn.addEventListener("click", doSearch);
+    if (searchInput)
+      searchInput.addEventListener("keyup", (e) => {
+        if (e.key === "Enter") doSearch();
+      });
+
+    if ($("#save-ai-cfg-btn")) {
+      $("#save-ai-cfg-btn").addEventListener("click", () => {
+        saveStorageObj(STORAGE_KEYS.aiConfig, {
+          endpoint: $("#cfg-ai-endpoint").value.trim(),
+          key: $("#cfg-ai-key").value.trim(),
+        });
+        toast("配置已保存！");
+      });
     }
-    if (dropZone) {
-      ["dragover", "dragenter"].forEach((ev) => {
-        dropZone.addEventListener(ev, (e) => {
-          e.preventDefault();
-          dropZone.classList.add("drag");
-        });
-      });
-      ["dragleave", "drop"].forEach((ev) => {
-        dropZone.addEventListener(ev, (e) => {
-          e.preventDefault();
-          dropZone.classList.remove("drag");
-        });
-      });
-      dropZone.addEventListener("drop", (e) => {
-        if (e.dataTransfer && e.dataTransfer.files)
-          handleFileUpload(e.dataTransfer.files);
+    if ($("#reset-ai-cfg-btn")) {
+      $("#reset-ai-cfg-btn").addEventListener("click", () => {
+        saveStorageObj(STORAGE_KEYS.aiConfig, {});
+        if ($("#cfg-ai-endpoint")) $("#cfg-ai-endpoint").value = "";
+        if ($("#cfg-ai-key")) $("#cfg-ai-key").value = "";
+        toast("已恢复内置评分引擎");
       });
     }
   }
 
-  function handleFileUpload(files) {
-    if (!files || !files.length) return;
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = JSON.parse(reader.result);
-          const list = Array.isArray(parsed) ? parsed : parsed.questions || [];
-          const normalized = list
-            .map((q, idx) => normalizeQuestion(q, idx))
-            .filter(Boolean);
-          state.customQuestions.push(...normalized);
-          saveStorageArray(STORAGE_KEYS.customLib, state.customQuestions);
-          mergeAllQuestions();
-          const statusEl = $("#upload-status");
-          if (statusEl) {
-            statusEl.innerHTML = `<div class="ok-box">成功导入 <b>${normalized.length}</b> 道题目！当前总题库共 <b>${state.allQuestions.length}</b> 题。</div>`;
-          }
-          toast(`题库更新，共 ${state.allQuestions.length} 题`);
-          switchView(state.view);
-        } catch (err) {
-          alert("文件解析失败，请确保上传的是标准 JSON 格式！");
-        }
-      };
-      reader.readAsText(file);
-    });
-  }
-
-  // ---------- 系统初始化 ----------
   async function initApp() {
     state.wrongIds = loadStorageSet(STORAGE_KEYS.wrong);
     state.favIds = loadStorageSet(STORAGE_KEYS.favorites);
     state.userAnswers = loadStorageObj(STORAGE_KEYS.userAnswers);
     state.userNotes = loadStorageObj(STORAGE_KEYS.userNotes);
-
-    // 强制保障 customQuestions 为 Array
-    const customList = loadStorageArray(STORAGE_KEYS.customLib);
-    state.customQuestions = customList
-      .map((q, idx) => normalizeQuestion(q, idx))
+    state.customQuestions = loadStorageArray(STORAGE_KEYS.customLib)
+      .map(normalizeQuestion)
       .filter(Boolean);
 
-    bindGlobalEvents();
+    bindEvents();
 
-    // 优先尝试读取 cleaned_questions.json，失败则回退到 questions.json
     const candidateFiles = ["cleaned_questions.json", "questions.json"];
     let loadedData = null;
 
@@ -1082,46 +819,24 @@
         if (res.ok) {
           const json = await res.json();
           loadedData = Array.isArray(json) ? json : json.questions || [];
-          if (loadedData.length > 0) {
-            console.log(
-              `成功加载真题数据源: ${filename}，共 ${loadedData.length} 题`,
-            );
-            break;
-          }
+          if (loadedData.length > 0) break;
         }
-      } catch (e) {
-        // 继续尝试下一个候选文件
-      }
+      } catch (e) {}
     }
 
-    const loadingEl = $("#loading");
-    if (loadingEl) loadingEl.classList.add("hidden");
+    if ($("#loading")) $("#loading").classList.add("hidden");
 
     if (loadedData && loadedData.length) {
       state.baseQuestions = loadedData
         .map((q, idx) => normalizeQuestion(q, idx))
         .filter(Boolean);
-    } else {
-      console.warn("未通过 fetch 读取到题库，展示本地选择提示");
-      const banner = $("#load-banner");
-      if (banner) {
-        banner.classList.remove("hidden");
-        banner.innerHTML = `
-          <div>
-            <b>💡 提示：若直接双击 html 运行（file:// 协议），浏览器会拦截本地 json 读取。</b>
-            <p>建议通过 <code>VS Code Live Server</code> 或在当前目录运行 <code>python3 -m http.server 8000</code> 后访问；或前往【系统与题库】直接选择导入 <code>cleaned_questions.json</code>。</p>
-          </div>
-        `;
-      }
     }
 
     mergeAllQuestions();
     switchView("home");
   }
 
-  if (document.readyState === "loading") {
+  if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", initApp);
-  } else {
-    initApp();
-  }
+  else initApp();
 })();

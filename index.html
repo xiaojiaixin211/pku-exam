@@ -3,16 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>北京大学中文考研真题刷题系统 · PKU Literature Exam</title>
+    <title>北京大学中文考研真题研习系统 · PKU Literature Exam</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- 顶部导航栏 -->
+    <!-- 1. 顶部校训横幅 (文化底蕴植入) -->
+    <div class="top-motto-bar">
+      <div class="motto-inner">
+        <div class="motto-cn">思想自由 · 兼容并包</div>
+        <div class="motto-en">
+          Freedom of Thought &amp; Inclusiveness · Peking University 1898
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 品牌 Header 导航栏 -->
     <header class="header">
       <div class="header-inner">
-        <div class="brand">
-          <span class="brand-badge">PKU</span>
-          <span class="brand-title">北大中文考研 · 真题研习系统</span>
+        <div class="brand" data-go="home">
+          <div class="brand-emblem">北</div>
+          <div class="brand-text">
+            <h1>北京大学中文考研 · 真题研习系统</h1>
+            <p>中国语言文学系 · 历年真题与 AI 智能批改平台</p>
+          </div>
         </div>
 
         <button class="nav-toggle" id="nav-toggle-btn" aria-label="切换菜单">
@@ -35,21 +48,20 @@
       </div>
     </header>
 
-    <!-- 主体视图容器 -->
+    <!-- 3. 主体内容容器 -->
     <main class="container">
-      <!-- 离线/文件协议提示横幅 -->
       <div id="load-banner" class="load-banner hidden"></div>
 
-      <!-- 1. 首页视图 -->
+      <!-- 首页看板视图 -->
       <section id="view-home" class="view active"></section>
 
-      <!-- 2. 历年真题 / 模考视图 -->
+      <!-- 历年真题套卷视图 -->
       <section id="view-papers" class="view"></section>
 
-      <!-- 3. 学科与题型分类刷题视图 -->
+      <!-- 学科分类刷题视图 -->
       <section id="view-category" class="view"></section>
 
-      <!-- 4. 全库搜索检索视图 -->
+      <!-- 全库检索视图 -->
       <section id="view-search" class="view">
         <div class="panel">
           <h2 class="panel-title">🔍 全题库多维检索</h2>
@@ -75,20 +87,19 @@
         </div>
       </section>
 
-      <!-- 5. 错题本视图 -->
+      <!-- 错题本视图 -->
       <section id="view-wrong" class="view"></section>
 
-      <!-- 6. 收藏夹视图 -->
+      <!-- 重点收藏视图 -->
       <section id="view-favorites" class="view"></section>
 
-      <!-- 7. 系统与题库管理视图 -->
+      <!-- 系统与题库管理视图 -->
       <section id="view-settings" class="view">
         <div class="panel">
           <h2 class="panel-title">📚 题库导入与管理</h2>
           <p class="muted">
-            支持上传包含北大中文真题的
-            <code>cleaned_questions.json</code>
-            文件，系统会自动合并并更新本地题库。
+            支持上传
+            <code>cleaned_questions.json</code>，系统将自动合并并更新本地题库。
           </p>
           <div id="drop-zone" class="drop-zone">
             <input
@@ -111,15 +122,15 @@
         <div class="panel">
           <h2 class="panel-title">🤖 AI 智能批改设置 (Dify / 大模型 API)</h2>
           <p class="muted">
-            系统已内置本地启发式智能评分算法。如需接入您的 Dify
-            工作流或大语言模型 API，可在此配置：
+            系统已内置本地启发式智能评分算法。如需接入自建 Dify 或大模型
+            API，可在此配置：
           </p>
           <div class="form-row">
             <label>API 端点地址 (Endpoint):</label>
             <input
               type="text"
               id="cfg-ai-endpoint"
-              placeholder="例如: https://api.dify.ai/v1/chat-messages 或 自定义云函数地址"
+              placeholder="例如: https://api.dify.ai/v1/chat-messages"
             />
           </div>
           <div class="form-row">
@@ -127,7 +138,7 @@
             <input
               type="password"
               id="cfg-ai-key"
-              placeholder="Bearer app-xxxxxx (保存在浏览器本地)"
+              placeholder="Bearer app-xxxxxx"
             />
           </div>
           <div style="margin-top: 12px">
@@ -143,10 +154,9 @@
         <div class="panel">
           <h2 class="panel-title">💾 学习进度数据备份</h2>
           <p class="muted">
-            您可以将本地记录的错题、收藏和答题笔记导出为 JSON
-            备份文件，方便在其他设备上导入恢复。
+            将本地错题、收藏和答题笔记导出为 JSON 备份文件，方便跨设备迁移。
           </p>
-          <div style="display: flex; gap: 10px">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
             <button class="btn btn-primary" id="btn-export-data">
               导出学习数据 (JSON)
             </button>
@@ -167,16 +177,15 @@
       </section>
     </main>
 
-    <!-- 全局加载遮罩 -->
+    <!-- 加载遮罩 -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
       <p>正在装载北大中文考研真题库…</p>
     </div>
 
-    <!-- 浮动通知 Toast -->
+    <!-- Toast 提示 -->
     <div id="toast"></div>
 
-    <!-- 脚本入口 -->
     <script src="script.js"></script>
   </body>
 </html>
