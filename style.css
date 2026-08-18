@@ -992,3 +992,106 @@ textarea {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ==========================================
+ * 12. 微信联系弹窗 (Wechat Contact Modal)
+ * ========================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 10, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-box {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px 24px;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--pku-gold);
+  transform: scale(0.9);
+  transition: transform 0.25s ease;
+}
+
+.modal-overlay.show .modal-box {
+  transform: scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: var(--pku-red);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--pku-red);
+  margin-bottom: 16px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+}
+
+.modal-qrcode {
+  width: 220px;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  margin: 0 auto 14px;
+  display: block;
+}
+
+.modal-tip {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.modal-ok {
+  width: 100%;
+}
+
+/* API Key 显示/隐藏切换按钮 */
+.input-with-btn {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-btn .form-input {
+  flex: 1;
+}
+
+.btn-key-toggle {
+  white-space: nowrap;
+  padding-left: 14px;
+  padding-right: 14px;
+}

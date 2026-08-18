@@ -16,6 +16,12 @@
     aiConfig: "pku_exam_ai_cfg_v2",
   };
 
+  // AI 接口默认配置（仅用于设置页展示提示，不会自动写入 localStorage）
+  const DEFAULT_AI_CONFIG = {
+    endpoint: "https://api.deepseek.com",
+    model: "deepseek-chat",
+  };
+
   const DEFAULT_SUBJECTS = [
     "文艺学",
     "中国古代文学",
@@ -451,10 +457,21 @@
 
   function renderSettingsView() {
     const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
+    const hasSavedCfg = Object.keys(aiCfg).length > 0;
     const elEp = $("#cfg-ai-endpoint");
     const elKey = $("#cfg-ai-key");
-    if (elEp) elEp.value = aiCfg.endpoint || "";
-    if (elKey) elKey.value = aiCfg.key || "";
+    const elModel = $("#cfg-ai-model");
+    const btnToggle = $("#btn-toggle-key");
+    if (elEp)
+      elEp.value = hasSavedCfg
+        ? aiCfg.endpoint || ""
+        : DEFAULT_AI_CONFIG.endpoint;
+    if (elKey) {
+      elKey.value = aiCfg.key || "";
+      elKey.type = "password"; // 每次进入设置页均恢复为掩码显示
+    }
+    if (elModel) elModel.value = aiCfg.model || DEFAULT_AI_CONFIG.model;
+    if (btnToggle) btnToggle.textContent = "显示";
   }
 
   // 7. 路由切换
@@ -614,6 +631,57 @@
     }
   }
 
+  // 测试外部 AI 接口是否可正常连通（超时或跨域限制均按失败提示处理）
+  async function handleTestAIConnection(btn) {
+    const endpoint = $("#cfg-ai-endpoint")
+      ? $("#cfg-ai-endpoint").value.trim()
+      : "";
+    const key = $("#cfg-ai-key") ? $("#cfg-ai-key").value.trim() : "";
+
+    if (!endpoint) {
+      showToast("请先填写 API Endpoint 地址");
+      return;
+    }
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "⏳ 测试连接中...";
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers: key
+          ? { Authorization: key.startsWith("Bearer") ? key : `Bearer ${key}` }
+          : {},
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      showToast(
+        res.ok
+          ? "✅ 连接测试成功，接口可正常访问"
+          : `⚠️ 接口已响应，但状态码为 ${res.status}`,
+      );
+    } catch (err) {
+      showToast("❌ 连接失败：接口无法访问（可能受 CORS 或网络限制）");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  // 微信联系弹窗：显示与关闭
+  function openWechatModal() {
+    const overlay = $("#wechat-modal-overlay");
+    if (overlay) overlay.classList.add("show");
+  }
+
+  function closeWechatModal() {
+    const overlay = $("#wechat-modal-overlay");
+    if (overlay) overlay.classList.remove("show");
+  }
+
   // 9. 事件绑定
   function bindGlobalEvents() {
     document.addEventListener("click", (e) => {
@@ -749,15 +817,41 @@
             ? $("#cfg-ai-endpoint").value.trim()
             : "",
           key: $("#cfg-ai-key") ? $("#cfg-ai-key").value.trim() : "",
+          model: $("#cfg-ai-model")
+            ? $("#cfg-ai-model").value
+            : DEFAULT_AI_CONFIG.model,
         });
         showToast("AI 接口配置已保存！");
         return;
       }
       if (target.id === "btn-reset-ai-cfg") {
         saveObj(STORAGE_KEYS.aiConfig, {});
-        if ($("#cfg-ai-endpoint")) $("#cfg-ai-endpoint").value = "";
-        if ($("#cfg-ai-key")) $("#cfg-ai-key").value = "";
+        renderSettingsView();
         showToast("已恢复内置批改引擎");
+        return;
+      }
+      if (target.id === "btn-test-ai-cfg") {
+        handleTestAIConnection(target);
+        return;
+      }
+      if (target.id === "btn-toggle-key" || target.closest("#btn-toggle-key")) {
+        const keyInput = $("#cfg-ai-key");
+        const toggleBtn = $("#btn-toggle-key");
+        if (keyInput && toggleBtn) {
+          const isMasked = keyInput.type === "password";
+          keyInput.type = isMasked ? "text" : "password";
+          toggleBtn.textContent = isMasked ? "隐藏" : "显示";
+        }
+        return;
+      }
+
+      // 微信联系弹窗：关闭按钮 / 我知道了按钮 / 点击遮罩层外部
+      if (
+        target.id === "wechat-modal-close" ||
+        target.id === "wechat-modal-ok" ||
+        target.id === "wechat-modal-overlay"
+      ) {
+        closeWechatModal();
         return;
       }
     });
@@ -794,6 +888,13 @@
         }
       });
     }
+
+    // 按下 Esc 键关闭微信联系弹窗
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeWechatModal();
+      }
+    });
   }
 
   // 10. 初始化入口
@@ -852,5 +953,15 @@
     document.addEventListener("DOMContentLoaded", initApp);
   } else {
     initApp();
+  }
+
+  // 页面加载完成后自动弹出「微信联系开发者」二维码弹窗
+  function scheduleWechatModal() {
+    setTimeout(openWechatModal, 450);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", scheduleWechatModal);
+  } else {
+    scheduleWechatModal();
   }
 })();

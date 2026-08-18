@@ -249,21 +249,39 @@
               type="text"
               id="cfg-ai-endpoint"
               class="form-input"
-              placeholder="https://api.dify.ai/v1/chat-messages 或自定义代理地址"
+              placeholder="https://api.deepseek.com 或 Dify 工作流地址"
             />
           </div>
           <div class="form-group">
             <label for="cfg-ai-key" class="form-label">API Key 密钥：</label>
-            <input
-              type="password"
-              id="cfg-ai-key"
-              class="form-input"
-              placeholder="Bearer app-xxxxxxxxxxxxxxxx"
-            />
+            <div class="input-with-btn">
+              <input
+                type="password"
+                id="cfg-ai-key"
+                class="form-input"
+                placeholder="Bearer sk-xxxxxxxxxxxxxxxx"
+              />
+              <button type="button" class="btn btn-ghost btn-key-toggle" id="btn-toggle-key">
+                显示
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cfg-ai-model" class="form-label"
+              >模型选择 / 批改模式：</label
+            >
+            <select id="cfg-ai-model" class="form-input">
+              <option value="deepseek-chat">deepseek-chat（通用对话模型）</option>
+              <option value="deepseek-reasoner">deepseek-reasoner（深度推理模型）</option>
+              <option value="dify-workflow">Dify 工作流 API</option>
+            </select>
           </div>
           <div class="form-actions">
             <button class="btn btn-primary" id="btn-save-ai-cfg">
               保存配置
+            </button>
+            <button class="btn btn-ghost" id="btn-test-ai-cfg">
+              测试连接
             </button>
             <button class="btn btn-ghost" id="btn-reset-ai-cfg">
               恢复内置评分引擎
@@ -274,6 +292,35 @@
     </main>
 
     <div id="toast"></div>
+
+    <!-- 微信联系弹窗 -->
+    <div class="modal-overlay" id="wechat-modal-overlay">
+      <div
+        class="modal-box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wechat-modal-title"
+      >
+        <button
+          type="button"
+          class="modal-close"
+          id="wechat-modal-close"
+          aria-label="关闭"
+        >
+          &times;
+        </button>
+        <h3 class="modal-title" id="wechat-modal-title">
+          添加微信交流 / 获取真题解析与辅导
+        </h3>
+        <img class="modal-qrcode" src="./wechat.png" alt="开发者微信二维码" />
+        <p class="modal-tip">
+          扫码添加开发者微信，进群交流北大中文考研真题与复习方法。
+        </p>
+        <button type="button" class="btn btn-primary modal-ok" id="wechat-modal-ok">
+          我知道了
+        </button>
+      </div>
+    </div>
 
     <!-- 仅需引用 script.js，脚本内部已自动异步读取同目录下的 questions.json -->
     <script src="script.js"></script>
