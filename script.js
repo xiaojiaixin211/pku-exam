@@ -13,13 +13,12 @@
     answers: "pku_exam_answers_v2",
     notes: "pku_exam_notes_v2",
     customLib: "pku_exam_custom_lib_v2",
-    aiConfig: "pku_exam_ai_cfg_v2",
   };
 
-  // AI 接口默认配置（仅用于设置页展示提示，不会自动写入 localStorage）
-  const DEFAULT_AI_CONFIG = {
-    endpoint: "https://api.deepseek.com",
-    model: "deepseek-chat",
+  // AI 批改服务：API 地址与密钥已直接硬编码，无需用户手动配置
+  const AI_CONFIG = {
+    endpoint: "", // 在此填入实际 API 地址；留空则自动使用内置本地评分引擎
+    key: "", // 在此填入实际 API 密钥
   };
 
   const DEFAULT_SUBJECTS = [
@@ -455,25 +454,6 @@
     }
   }
 
-  function renderSettingsView() {
-    const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
-    const hasSavedCfg = Object.keys(aiCfg).length > 0;
-    const elEp = $("#cfg-ai-endpoint");
-    const elKey = $("#cfg-ai-key");
-    const elModel = $("#cfg-ai-model");
-    const btnToggle = $("#btn-toggle-key");
-    if (elEp)
-      elEp.value = hasSavedCfg
-        ? aiCfg.endpoint || ""
-        : DEFAULT_AI_CONFIG.endpoint;
-    if (elKey) {
-      elKey.value = aiCfg.key || "";
-      elKey.type = "password"; // 每次进入设置页均恢复为掩码显示
-    }
-    if (elModel) elModel.value = aiCfg.model || DEFAULT_AI_CONFIG.model;
-    if (btnToggle) btnToggle.textContent = "显示";
-  }
-
   // 7. 路由切换
   function switchView(viewName) {
     state.currentView = viewName;
@@ -505,9 +485,6 @@
       case "fav":
         renderFavView();
         break;
-      case "settings":
-        renderSettingsView();
-        break;
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -533,21 +510,19 @@
     resPanel.innerHTML =
       '<p class="muted-loading">正在比对北大标准采分点、分析学术术语规范与论述逻辑...</p>';
 
-    const aiCfg = loadObj(STORAGE_KEYS.aiConfig);
-
     try {
       let result = null;
 
-      if (aiCfg.endpoint) {
-        const response = await fetch(aiCfg.endpoint, {
+      if (AI_CONFIG.endpoint) {
+        const response = await fetch(AI_CONFIG.endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(aiCfg.key
+            ...(AI_CONFIG.key
               ? {
-                  Authorization: aiCfg.key.startsWith("Bearer")
-                    ? aiCfg.key
-                    : `Bearer ${aiCfg.key}`,
+                  Authorization: AI_CONFIG.key.startsWith("Bearer")
+                    ? AI_CONFIG.key
+                    : `Bearer ${AI_CONFIG.key}`,
                 }
               : {}),
           },
@@ -628,46 +603,6 @@
     } finally {
       btn.disabled = false;
       btn.textContent = "🤖 AI 智能批改打分";
-    }
-  }
-
-  // 测试外部 AI 接口是否可正常连通（超时或跨域限制均按失败提示处理）
-  async function handleTestAIConnection(btn) {
-    const endpoint = $("#cfg-ai-endpoint")
-      ? $("#cfg-ai-endpoint").value.trim()
-      : "";
-    const key = $("#cfg-ai-key") ? $("#cfg-ai-key").value.trim() : "";
-
-    if (!endpoint) {
-      showToast("请先填写 API Endpoint 地址");
-      return;
-    }
-
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "⏳ 测试连接中...";
-
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch(endpoint, {
-        method: "GET",
-        headers: key
-          ? { Authorization: key.startsWith("Bearer") ? key : `Bearer ${key}` }
-          : {},
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      showToast(
-        res.ok
-          ? "✅ 连接测试成功，接口可正常访问"
-          : `⚠️ 接口已响应，但状态码为 ${res.status}`,
-      );
-    } catch (err) {
-      showToast("❌ 连接失败：接口无法访问（可能受 CORS 或网络限制）");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
     }
   }
 
@@ -807,40 +742,6 @@
         if (input) {
           state.searchKeyword = input.value;
           renderSearchView();
-        }
-        return;
-      }
-
-      if (target.id === "btn-save-ai-cfg") {
-        saveObj(STORAGE_KEYS.aiConfig, {
-          endpoint: $("#cfg-ai-endpoint")
-            ? $("#cfg-ai-endpoint").value.trim()
-            : "",
-          key: $("#cfg-ai-key") ? $("#cfg-ai-key").value.trim() : "",
-          model: $("#cfg-ai-model")
-            ? $("#cfg-ai-model").value
-            : DEFAULT_AI_CONFIG.model,
-        });
-        showToast("AI 接口配置已保存！");
-        return;
-      }
-      if (target.id === "btn-reset-ai-cfg") {
-        saveObj(STORAGE_KEYS.aiConfig, {});
-        renderSettingsView();
-        showToast("已恢复内置批改引擎");
-        return;
-      }
-      if (target.id === "btn-test-ai-cfg") {
-        handleTestAIConnection(target);
-        return;
-      }
-      if (target.id === "btn-toggle-key" || target.closest("#btn-toggle-key")) {
-        const keyInput = $("#cfg-ai-key");
-        const toggleBtn = $("#btn-toggle-key");
-        if (keyInput && toggleBtn) {
-          const isMasked = keyInput.type === "password";
-          keyInput.type = isMasked ? "text" : "password";
-          toggleBtn.textContent = isMasked ? "隐藏" : "显示";
         }
         return;
       }
