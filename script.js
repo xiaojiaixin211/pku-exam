@@ -17,8 +17,8 @@
 
   // AI 批改服务：API 地址与密钥已直接硬编码，无需用户手动配置
   const AI_CONFIG = {
-    endpoint: "", // 在此填入实际 API 地址；留空则自动使用内置本地评分引擎
-    key: "", // 在此填入实际 API 密钥
+    endpoint: "https://api.deepseek.com/chat/completions",
+    key: "sk-ac4b3e9f08724814b3ef07414f02d01f", // 在此填入实际 API 密钥
   };
 
   const DEFAULT_SUBJECTS = [
