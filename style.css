@@ -1212,11 +1212,72 @@ textarea {
   cursor: not-allowed;
 }
 
-.login-tip {
-  text-align: center;
+.login-contact {
   margin-top: 16px;
+  text-align: center;
+}
+
+.login-tip {
+  margin: 0;
   font-size: 12.5px;
+  line-height: 1.7;
   color: var(--text-muted);
+}
+
+.login-help {
+  margin: 10px 0 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.wechat-contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-wechat {
+  color: var(--pku-red);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  word-break: break-all;
+}
+
+.copy-wechat-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--pku-gold);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--pku-red);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.copy-wechat-btn:hover {
+  color: #fff;
+  background: var(--pku-red);
+  border-color: var(--pku-red);
+}
+
+.copy-wechat-btn:focus-visible {
+  outline: 2px solid var(--pku-gold);
+  outline-offset: 2px;
+}
+
+.copy-wechat-message {
+  min-height: 20px;
+  margin: 4px 0 0;
+  color: var(--ok);
+  font-size: 12px;
+  line-height: 20px;
 }
 
 /* 顶部登录状态栏：当前账号 / 退出登录 */

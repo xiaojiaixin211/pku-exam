@@ -67,6 +67,51 @@
     if (els.usernameInput) els.usernameInput.disabled = isSubmitting;
     if (els.passwordInput) els.passwordInput.disabled = isSubmitting;
   }
+  async function handleCopyWechat() {
+    var wechatId = "Xiao3297651464";
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(wechatId);
+      } else {
+        var textarea = document.createElement("textarea");
+        textarea.value = wechatId;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        var copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        if (!copied) {
+          throw new Error("复制失败");
+        }
+      }
+
+      if (els.copyWechatBtn) {
+        els.copyWechatBtn.textContent = "已复制";
+      }
+
+      if (els.copyWechatMessage) {
+        els.copyWechatMessage.textContent = "微信号已复制";
+      }
+
+      window.setTimeout(function () {
+        if (els.copyWechatBtn) {
+          els.copyWechatBtn.textContent = "复制";
+        }
+        if (els.copyWechatMessage) {
+          els.copyWechatMessage.textContent = "";
+        }
+      }, 2000);
+    } catch (err) {
+      if (els.copyWechatMessage) {
+        els.copyWechatMessage.textContent = "复制失败，请手动复制：" + wechatId;
+      }
+    }
+  }
 
   // ------------------------------------------------------------------
   // 3. 视图切换：验证中 / 登录页 / 应用主体
@@ -136,8 +181,11 @@
     if (e) e.preventDefault();
     if (submitting) return;
 
-    var username = (els.usernameInput && els.usernameInput.value || "").trim();
-    var password = els.passwordInput && els.passwordInput.value || "";
+    var username = (
+      (els.usernameInput && els.usernameInput.value) ||
+      ""
+    ).trim();
+    var password = (els.passwordInput && els.passwordInput.value) || "";
 
     setLoginError("");
 
@@ -193,6 +241,9 @@
     if (els.logoutBtn) {
       els.logoutBtn.addEventListener("click", handleLogout);
     }
+    if (els.copyWechatBtn) {
+      els.copyWechatBtn.addEventListener("click", handleCopyWechat);
+    }
     // 表单内的账号/密码输入框按 Enter 键会被浏览器原生触发 <form> 的 submit 事件，
     // 已由上面的 submit 监听处理，此处无需额外绑定 keydown，避免重复提交。
   }
@@ -211,6 +262,8 @@
     els.loginError = $("#login-error");
     els.logoutBtn = $("#btn-logout");
     els.currentAccountName = $("#current-account-name");
+    els.copyWechatBtn = $("#copy-wechat-btn");
+    els.copyWechatMessage = $("#copy-wechat-message");
 
     bindEvents();
     showCheckingScreen();

@@ -48,11 +48,36 @@
             required
           />
           <div id="login-error" class="login-error" style="display: none"></div>
-          <button type="submit" id="login-submit-btn" class="btn btn-primary login-submit">
+          <button
+            type="submit"
+            id="login-submit-btn"
+            class="btn btn-primary login-submit"
+          >
             登 录
           </button>
         </form>
-        <p class="login-tip">账号由管理员提供，暂不支持自行注册</p>
+        <div class="login-contact">
+          <p class="login-tip">账号由管理员提供，暂不支持自行注册</p>
+          <p class="login-help">没有账号或忘记密码？请添加管理员微信</p>
+
+          <div class="wechat-contact-row">
+            <span id="admin-wechat" class="admin-wechat">Xiao3297651464</span>
+            <button
+              type="button"
+              id="copy-wechat-btn"
+              class="copy-wechat-btn"
+              aria-label="复制管理员微信号"
+            >
+              复制
+            </button>
+          </div>
+
+          <p
+            id="copy-wechat-message"
+            class="copy-wechat-message"
+            aria-live="polite"
+          ></p>
+        </div>
       </div>
     </div>
 
@@ -63,7 +88,8 @@
         <div class="motto-inner">
           <span class="motto-cn">思想自由 兼容并包</span>
           <span class="motto-en"
-            >Peking University Department of Chinese Language and Literature</span
+            >Peking University Department of Chinese Language and
+            Literature</span
           >
         </div>
       </aside>
@@ -74,7 +100,11 @@
           <span class="auth-status-account"
             >当前账号：<strong id="current-account-name">-</strong></span
           >
-          <button type="button" id="btn-logout" class="btn btn-ghost auth-logout-btn">
+          <button
+            type="button"
+            id="btn-logout"
+            class="btn btn-ghost auth-logout-btn"
+          >
             退出登录
           </button>
         </div>
@@ -115,213 +145,218 @@
         </div>
       </header>
 
-    <!-- 3. 顶部横幅区 -->
-    <section class="banner">
-      <div class="banner-overlay"></div>
-      <div class="banner-content">
-        <h1 class="banner-motto">思想自由 兼容并包</h1>
-        <p class="banner-sub">
-          2000 – 2026 历年全真试卷研习 · 文艺学 / 古代文学 / 现当代文学 /
-          中外文学基础 / 比较文学
-        </p>
-      </div>
-    </section>
-
-    <!-- 4. 主体内容容器 -->
-    <main class="main-container">
-      <!-- 视图 1：首页看板 -->
-      <section id="view-home" class="view active">
-        <div class="data-cards-grid">
-          <div class="data-card">
-            <div class="data-number" id="home-total-cnt">281</div>
-            <div class="data-label">道 · 题库总录</div>
-          </div>
-          <div class="data-card">
-            <div class="data-number" id="home-span-cnt">7</div>
-            <div class="data-label">年 · 真题跨度</div>
-          </div>
-          <div class="data-card">
-            <div class="data-number">5</div>
-            <div class="data-label">大 · 专业学科</div>
-          </div>
-          <div class="data-card">
-            <div class="data-number" id="home-wrong-cnt">0</div>
-            <div class="data-label">题 · 待攻克错题</div>
-          </div>
+      <!-- 3. 顶部横幅区 -->
+      <section class="banner">
+        <div class="banner-overlay"></div>
+        <div class="banner-content">
+          <h1 class="banner-motto">思想自由 兼容并包</h1>
+          <p class="banner-sub">
+            2000 – 2026 历年全真试卷研习 · 文艺学 / 古代文学 / 现当代文学 /
+            中外文学基础 / 比较文学
+          </p>
         </div>
+      </section>
 
-        <div class="portals-grid">
-          <div class="portal-card" data-view="papers">
-            <div>
-              <div class="portal-icon">📜</div>
-              <div class="portal-name">历年套卷全真模考</div>
-              <div class="portal-desc">
-                高度还原真题卷面结构，支持答题卡跳转与沉浸式计时模考。
+      <!-- 4. 主体内容容器 -->
+      <main class="main-container">
+        <!-- 视图 1：首页看板 -->
+        <section id="view-home" class="view active">
+          <div class="data-cards-grid">
+            <div class="data-card">
+              <div class="data-number" id="home-total-cnt">281</div>
+              <div class="data-label">道 · 题库总录</div>
+            </div>
+            <div class="data-card">
+              <div class="data-number" id="home-span-cnt">7</div>
+              <div class="data-label">年 · 真题跨度</div>
+            </div>
+            <div class="data-card">
+              <div class="data-number">5</div>
+              <div class="data-label">大 · 专业学科</div>
+            </div>
+            <div class="data-card">
+              <div class="data-number" id="home-wrong-cnt">0</div>
+              <div class="data-label">题 · 待攻克错题</div>
+            </div>
+          </div>
+
+          <div class="portals-grid">
+            <div class="portal-card" data-view="papers">
+              <div>
+                <div class="portal-icon">📜</div>
+                <div class="portal-name">历年套卷全真模考</div>
+                <div class="portal-desc">
+                  高度还原真题卷面结构，支持答题卡跳转与沉浸式计时模考。
+                </div>
+              </div>
+            </div>
+            <div class="portal-card" data-view="category">
+              <div>
+                <div class="portal-icon">📚</div>
+                <div class="portal-name">五大学科专项专练</div>
+                <div class="portal-desc">
+                  按古代文学、现当代、文艺学、中外文基等学科与题型精确筛选。
+                </div>
+              </div>
+            </div>
+            <div class="portal-card" data-view="search">
+              <div>
+                <div class="portal-icon">🔍</div>
+                <div class="portal-name">考点原典精准检索</div>
+                <div class="portal-desc">
+                  支持作家作品、文学批评命题、原典出处与采分点全文检索。
+                </div>
+              </div>
+            </div>
+            <div class="portal-card" data-view="wrong">
+              <div>
+                <div class="portal-icon">📕</div>
+                <div class="portal-name">错题复习与笔记</div>
+                <div class="portal-desc">
+                  自动归集薄弱大题，沉淀个人论述答题提纲与掌握度追踪。
+                </div>
               </div>
             </div>
           </div>
-          <div class="portal-card" data-view="category">
-            <div>
-              <div class="portal-icon">📚</div>
-              <div class="portal-name">五大学科专项专练</div>
-              <div class="portal-desc">
-                按古代文学、现当代、文艺学、中外文基等学科与题型精确筛选。
-              </div>
+
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">历年真题套卷直达</h2>
+              <span class="section-tip">点击年份直接进入该年度试卷做题</span>
+            </div>
+            <div class="year-grid" id="home-year-grid"></div>
+          </div>
+        </section>
+
+        <!-- 视图 2：历年真题模考 -->
+        <section id="view-papers" class="view">
+          <div class="paper-ctrl-bar">
+            <div class="paper-selects">
+              <label for="paper-year-sel" class="ctrl-label">年份：</label>
+              <select id="paper-year-sel"></select>
+              <label for="paper-code-sel" class="ctrl-label">科目代码：</label>
+              <select id="paper-code-sel"></select>
+            </div>
+            <div class="mode-btn-group">
+              <button class="btn btn-primary" id="btn-mode-recite">
+                📖 背题模式
+              </button>
+              <button class="btn btn-ghost" id="btn-mode-exam">
+                ⏱️ 模考模式
+              </button>
             </div>
           </div>
-          <div class="portal-card" data-view="search">
-            <div>
-              <div class="portal-icon">🔍</div>
-              <div class="portal-name">考点原典精准检索</div>
-              <div class="portal-desc">
-                支持作家作品、文学批评命题、原典出处与采分点全文检索。
-              </div>
+
+          <div id="paper-question-container"></div>
+
+          <div class="paper-nav-actions">
+            <button class="btn btn-primary" id="btn-prev-q">← 上一题</button>
+            <button class="btn btn-primary" id="btn-next-q">下一题 →</button>
+          </div>
+
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">试卷答题卡与快速定位</h2>
+              <span id="paper-progress-text" class="section-tip"
+                >加载中...</span
+              >
+            </div>
+            <div class="ac-grid" id="paper-sheet-grid"></div>
+          </div>
+        </section>
+
+        <!-- 视图 3：分类刷题 -->
+        <section id="view-category" class="view">
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">学科与题型筛选</h2>
+            </div>
+            <div class="subj-grid" id="cat-subj-grid"></div>
+            <div class="type-chips" id="cat-type-chips"></div>
+          </div>
+          <div id="cat-list-container" class="card-list"></div>
+        </section>
+
+        <!-- 视图 4：全库检索 -->
+        <section id="view-search" class="view">
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">全真题库考点全文检索</h2>
+            </div>
+            <div class="search-bar">
+              <input
+                type="text"
+                id="search-input"
+                placeholder="输入作家名（如鲁迅、杜甫）、文论命题（如陌生化、境界说）或原典名句..."
+              />
+              <button class="btn btn-primary" id="btn-do-search">
+                🔍 立即检索
+              </button>
+            </div>
+            <div id="search-results-summary" class="search-summary">
+              请输入关键词检索
             </div>
           </div>
-          <div class="portal-card" data-view="wrong">
-            <div>
-              <div class="portal-icon">📕</div>
-              <div class="portal-name">错题复习与笔记</div>
-              <div class="portal-desc">
-                自动归集薄弱大题，沉淀个人论述答题提纲与掌握度追踪。
-              </div>
+          <div id="search-list-container" class="card-list"></div>
+        </section>
+
+        <!-- 视图 5：错题本 -->
+        <section id="view-wrong" class="view">
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">📕 个人错题攻克本</h2>
+              <span id="wrong-summary-text" class="section-tip"
+                >共收录 0 题</span
+              >
             </div>
+            <div id="wrong-list-container" class="card-list"></div>
           </div>
-        </div>
+        </section>
 
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">历年真题套卷直达</h2>
-            <span class="section-tip">点击年份直接进入该年度试卷做题</span>
+        <!-- 视图 6：重点收藏 -->
+        <section id="view-fav" class="view">
+          <div class="section-box">
+            <div class="section-header">
+              <h2 class="section-title">⭐ 重点高频考点收藏</h2>
+              <span id="fav-summary-text" class="section-tip">共收藏 0 题</span>
+            </div>
+            <div id="fav-list-container" class="card-list"></div>
           </div>
-          <div class="year-grid" id="home-year-grid"></div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      <!-- 视图 2：历年真题模考 -->
-      <section id="view-papers" class="view">
-        <div class="paper-ctrl-bar">
-          <div class="paper-selects">
-            <label for="paper-year-sel" class="ctrl-label">年份：</label>
-            <select id="paper-year-sel"></select>
-            <label for="paper-code-sel" class="ctrl-label">科目代码：</label>
-            <select id="paper-code-sel"></select>
-          </div>
-          <div class="mode-btn-group">
-            <button class="btn btn-primary" id="btn-mode-recite">
-              📖 背题模式
-            </button>
-            <button class="btn btn-ghost" id="btn-mode-exam">
-              ⏱️ 模考模式
-            </button>
-          </div>
-        </div>
+      <div id="toast"></div>
 
-        <div id="paper-question-container"></div>
-
-        <div class="paper-nav-actions">
-          <button class="btn btn-primary" id="btn-prev-q">← 上一题</button>
-          <button class="btn btn-primary" id="btn-next-q">下一题 →</button>
-        </div>
-
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">试卷答题卡与快速定位</h2>
-            <span id="paper-progress-text" class="section-tip">加载中...</span>
-          </div>
-          <div class="ac-grid" id="paper-sheet-grid"></div>
-        </div>
-      </section>
-
-      <!-- 视图 3：分类刷题 -->
-      <section id="view-category" class="view">
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">学科与题型筛选</h2>
-          </div>
-          <div class="subj-grid" id="cat-subj-grid"></div>
-          <div class="type-chips" id="cat-type-chips"></div>
-        </div>
-        <div id="cat-list-container" class="card-list"></div>
-      </section>
-
-      <!-- 视图 4：全库检索 -->
-      <section id="view-search" class="view">
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">全真题库考点全文检索</h2>
-          </div>
-          <div class="search-bar">
-            <input
-              type="text"
-              id="search-input"
-              placeholder="输入作家名（如鲁迅、杜甫）、文论命题（如陌生化、境界说）或原典名句..."
-            />
-            <button class="btn btn-primary" id="btn-do-search">
-              🔍 立即检索
-            </button>
-          </div>
-          <div id="search-results-summary" class="search-summary">
-            请输入关键词检索
-          </div>
-        </div>
-        <div id="search-list-container" class="card-list"></div>
-      </section>
-
-      <!-- 视图 5：错题本 -->
-      <section id="view-wrong" class="view">
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">📕 个人错题攻克本</h2>
-            <span id="wrong-summary-text" class="section-tip">共收录 0 题</span>
-          </div>
-          <div id="wrong-list-container" class="card-list"></div>
-        </div>
-      </section>
-
-      <!-- 视图 6：重点收藏 -->
-      <section id="view-fav" class="view">
-        <div class="section-box">
-          <div class="section-header">
-            <h2 class="section-title">⭐ 重点高频考点收藏</h2>
-            <span id="fav-summary-text" class="section-tip">共收藏 0 题</span>
-          </div>
-          <div id="fav-list-container" class="card-list"></div>
-        </div>
-      </section>
-
-    </main>
-
-    <div id="toast"></div>
-
-    <!-- 微信联系弹窗 -->
-    <div class="modal-overlay" id="wechat-modal-overlay">
-      <div
-        class="modal-box"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="wechat-modal-title"
-      >
-        <button
-          type="button"
-          class="modal-close"
-          id="wechat-modal-close"
-          aria-label="关闭"
+      <!-- 微信联系弹窗 -->
+      <div class="modal-overlay" id="wechat-modal-overlay">
+        <div
+          class="modal-box"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wechat-modal-title"
         >
-          &times;
-        </button>
-        <h3 class="modal-title" id="wechat-modal-title">
-          添加微信交流 / 获取真题解析与辅导
-        </h3>
-        <img class="modal-qrcode" src="./wechat.png" alt="开发者微信二维码" />
-        <p class="modal-tip">
-          添加开发者微信才可获取AI批改功能。
-        </p>
-        <button type="button" class="btn btn-primary modal-ok" id="wechat-modal-ok">
-          我知道了
-        </button>
+          <button
+            type="button"
+            class="modal-close"
+            id="wechat-modal-close"
+            aria-label="关闭"
+          >
+            &times;
+          </button>
+          <h3 class="modal-title" id="wechat-modal-title">
+            添加微信交流 / 获取真题解析与辅导
+          </h3>
+          <img class="modal-qrcode" src="./wechat.png" alt="开发者微信二维码" />
+          <p class="modal-tip">添加开发者微信才可获取AI批改功能。</p>
+          <button
+            type="button"
+            class="btn btn-primary modal-ok"
+            id="wechat-modal-ok"
+          >
+            我知道了
+          </button>
+        </div>
       </div>
-    </div>
     </div>
     <!-- /#app-root -->
 
