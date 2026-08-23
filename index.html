@@ -7,50 +7,113 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- 1. 顶部校训栏 -->
-    <aside class="top-motto-bar">
-      <div class="motto-inner">
-        <span class="motto-cn">思想自由 兼容并包</span>
-        <span class="motto-en"
-          >Peking University Department of Chinese Language and Literature</span
-        >
+    <!-- 登录状态检查中：页面刚加载时显示，避免闪现正式网站内容 -->
+    <div id="auth-checking" class="auth-screen">
+      <div class="auth-checking-box">
+        <div class="auth-spinner"></div>
+        <p>正在验证登录状态...</p>
       </div>
-    </aside>
+    </div>
 
-    <!-- 2. 顶部主导航栏 -->
-    <header class="header">
-      <div class="header-inner">
-        <div class="brand-logo" data-view="home">
+    <!-- 登录页：未登录时仅显示此页面，隐藏网站全部主体内容 -->
+    <div id="login-page" class="auth-screen" style="display: none">
+      <div class="login-card">
+        <div class="login-brand">
           <div class="brand-emblem">北</div>
           <div class="brand-text">
             <span class="brand-title">北京大学</span>
-            <span class="brand-sub">中文考研真题研习</span>
+            <span class="brand-sub">中文考研真题研习系统</span>
           </div>
         </div>
-        <nav>
-          <ul class="nav-menu">
-            <li class="nav-item">
-              <a class="nav-link active" data-view="home">首页</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-view="papers">历年真题</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-view="category">分类刷题</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-view="search">题库检索</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-view="wrong">错题本</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-view="fav">重点收藏</a>
-            </li>
-          </ul>
-        </nav>
+        <h1 class="login-title">账号登录</h1>
+        <form id="login-form" class="login-form" autocomplete="on">
+          <label class="login-label" for="login-username">账号</label>
+          <input
+            type="text"
+            id="login-username"
+            class="login-input"
+            name="username"
+            placeholder="请输入账号"
+            autocomplete="username"
+            required
+          />
+          <label class="login-label" for="login-password">密码</label>
+          <input
+            type="password"
+            id="login-password"
+            class="login-input"
+            name="password"
+            placeholder="请输入密码"
+            autocomplete="current-password"
+            required
+          />
+          <div id="login-error" class="login-error" style="display: none"></div>
+          <button type="submit" id="login-submit-btn" class="btn btn-primary login-submit">
+            登 录
+          </button>
+        </form>
+        <p class="login-tip">账号由管理员提供，暂不支持自行注册</p>
       </div>
-    </header>
+    </div>
+
+    <!-- 应用主体容器：未登录时必须隐藏 -->
+    <div id="app-root" style="display: none">
+      <!-- 1. 顶部校训栏 -->
+      <aside class="top-motto-bar">
+        <div class="motto-inner">
+          <span class="motto-cn">思想自由 兼容并包</span>
+          <span class="motto-en"
+            >Peking University Department of Chinese Language and Literature</span
+          >
+        </div>
+      </aside>
+
+      <!-- 1.5 登录状态栏：当前账号 / 退出登录 -->
+      <div class="auth-status-bar">
+        <div class="auth-status-inner">
+          <span class="auth-status-account"
+            >当前账号：<strong id="current-account-name">-</strong></span
+          >
+          <button type="button" id="btn-logout" class="btn btn-ghost auth-logout-btn">
+            退出登录
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 顶部主导航栏 -->
+      <header class="header">
+        <div class="header-inner">
+          <div class="brand-logo" data-view="home">
+            <div class="brand-emblem">北</div>
+            <div class="brand-text">
+              <span class="brand-title">北京大学</span>
+              <span class="brand-sub">中文考研真题研习</span>
+            </div>
+          </div>
+          <nav>
+            <ul class="nav-menu">
+              <li class="nav-item">
+                <a class="nav-link active" data-view="home">首页</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-view="papers">历年真题</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-view="category">分类刷题</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-view="search">题库检索</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-view="wrong">错题本</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-view="fav">重点收藏</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </header>
 
     <!-- 3. 顶部横幅区 -->
     <section class="banner">
@@ -259,7 +322,13 @@
         </button>
       </div>
     </div>
+    </div>
+    <!-- /#app-root -->
 
+    <!-- CloudBase Web SDK v3（官方 CDN，static.cloudbase.net 为腾讯云官方托管，适合中国大陆访问） -->
+    <script src="https://static.cloudbase.net/cloudbase-js-sdk/3.8.1/cloudbase.full.js"></script>
+    <!-- 身份认证逻辑独立于 script.js，负责登录/登出与登录态检查 -->
+    <script src="auth.js"></script>
     <!-- 仅需引用 script.js，脚本内部已自动异步读取同目录下的 questions.json -->
     <script src="script.js"></script>
   </body>

@@ -1095,3 +1095,172 @@ textarea {
   padding-left: 14px;
   padding-right: 14px;
 }
+
+/* ==========================================
+ * 13. 身份认证：验证中 / 登录页 / 状态栏 (Auth Screens)
+ * ========================================== */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, var(--bg-paper) 0%, #f3ece2 100%);
+  padding: 16px;
+}
+
+.auth-checking-box {
+  text-align: center;
+  color: var(--text-sub);
+}
+
+.auth-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--pku-red);
+  border-radius: 50%;
+  animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card-bg);
+  border: 1px solid var(--pku-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hover);
+  padding: 32px 28px 28px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.login-title {
+  text-align: center;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--pku-red);
+  margin-bottom: 20px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-label {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 10px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  background: var(--bg-paper);
+  color: var(--text-dark);
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--pku-red);
+  background: #fff;
+}
+
+.login-input:disabled {
+  opacity: 0.6;
+}
+
+.login-error {
+  color: var(--wrong);
+  background: var(--wrong-bg);
+  border: 1px solid var(--wrong);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-tip {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* 顶部登录状态栏：当前账号 / 退出登录 */
+.auth-status-bar {
+  background: var(--pku-red-dark);
+  color: #fff;
+}
+
+.auth-status-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6px 24px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+}
+
+.auth-status-account strong {
+  color: var(--pku-gold);
+  font-weight: 700;
+}
+
+.auth-logout-btn {
+  padding: 4px 14px;
+  font-size: 12.5px;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.auth-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 移动端适配 */
+@media (max-width: 680px) {
+  .login-card {
+    padding: 26px 20px 22px;
+  }
+  .auth-status-inner {
+    padding: 6px 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+}

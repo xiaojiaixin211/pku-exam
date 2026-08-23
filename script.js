@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 北京大学中文考研真题研习系统 - 核心业务逻辑
  * 文件路径: script.js
  */
@@ -13,12 +13,6 @@
     answers: "pku_exam_answers_v2",
     notes: "pku_exam_notes_v2",
     customLib: "pku_exam_custom_lib_v2",
-  };
-
-  // AI 批改服务：API 地址与密钥已直接硬编码，无需用户手动配置
-  const AI_CONFIG = {
-    endpoint: "https://api.deepseek.com/chat/completions",
-    key: "sk-ac4b3e9f08724814b3ef07414f02d01f", // 在此填入实际 API 密钥
   };
 
   const DEFAULT_SUBJECTS = [
@@ -219,7 +213,7 @@
           <label class="answer-label">✍️ 考生作答 / 论述提纲：</label>
           <textarea class="card-answer-input" rows="4" placeholder="在此输入你的论述提纲、核心名词界定或原典论据..." data-qid="${escapeHtml(q.id)}">${escapeHtml(savedAnswer)}</textarea>
           <div class="ai-ctrl-bar">
-            <button class="btn btn-primary" data-action="ai-grade" data-qid="${escapeHtml(q.id)}">🤖 AI 智能批改打分</button>
+            <button class="btn btn-ghost" data-action="ai-grade" data-qid="${escapeHtml(q.id)}" title="AI 批改服务升级中，暂不可用">🤖 AI批改服务升级中</button>
             <span class="muted-tip">作答内容实时保存于本地</span>
           </div>
           <div class="ai-result-box" id="ai-res-${escapeHtml(q.id)}" style="display:none;"></div>
@@ -491,121 +485,15 @@
   }
 
   // 8. AI 批改引擎
-  async function handleAIGrading(qid, btn) {
-    const q = state.allQuestions.find((item) => item.id === qid);
-    if (!q) return;
-
-    const answerText = (state.userAnswers[qid] || "").trim();
-    if (!answerText) {
-      alert("请先在答题输入框填写作答内容或论述提纲！");
-      return;
-    }
-
+  // 说明：AI 批改服务正在升级中，前端不再直接请求任何第三方大模型接口，
+  // 点击按钮仅展示"服务升级中"提示，不会发起任何网络请求。
+  function handleAIGrading(qid) {
     const resPanel = $(`#ai-res-${qid}`);
     if (!resPanel) return;
-
-    btn.disabled = true;
-    btn.textContent = "⏳ 智能阅卷批改中...";
     resPanel.style.display = "block";
     resPanel.innerHTML =
-      '<p class="muted-loading">正在比对北大标准采分点、分析学术术语规范与论述逻辑...</p>';
-
-    try {
-      let result = null;
-
-      if (AI_CONFIG.endpoint) {
-        const response = await fetch(AI_CONFIG.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(AI_CONFIG.key
-              ? {
-                  Authorization: AI_CONFIG.key.startsWith("Bearer")
-                    ? AI_CONFIG.key
-                    : `Bearer ${AI_CONFIG.key}`,
-                }
-              : {}),
-          },
-          body: JSON.stringify({
-            question: q.title,
-            standard_answer: q.answer,
-            max_score: q.score || 10,
-            user_answer: answerText,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          result = {
-            score:
-              data.score != null
-                ? data.score
-                : Math.round((q.score || 10) * 0.8),
-            maxScore: q.score || 10,
-            hitPoints: data.hit_points || [],
-            missPoints: data.miss_points || [],
-            feedback: data.feedback || data.answer || "批改完成。",
-          };
-        }
-      }
-
-      if (!result) {
-        const maxScore = q.score > 0 ? q.score : 10;
-        const targetKeywords = Array.from(
-          new Set([
-            ...(q.tags || []),
-            ...(q.answer.match(/[\u4e00-\u9fa5]{2,6}/g) || []),
-          ]),
-        ).filter((k) => k.length >= 2);
-
-        const hit = [];
-        const miss = [];
-
-        targetKeywords.forEach((kw) => {
-          if (answerText.includes(kw)) {
-            hit.push(kw);
-          } else if (q.tags && q.tags.includes(kw)) {
-            miss.push(kw);
-          }
-        });
-
-        const lenRatio = Math.min(1, answerText.length / 160);
-        const hitRatio = targetKeywords.length
-          ? Math.min(1, hit.length / Math.max(3, targetKeywords.length * 0.4))
-          : 0.7;
-        const totalRatio = Math.max(
-          0.35,
-          Math.min(0.96, lenRatio * 0.35 + hitRatio * 0.65),
-        );
-        const finalScore = Math.round(maxScore * totalRatio);
-
-        result = {
-          score: finalScore,
-          maxScore: maxScore,
-          hitPoints: hit.slice(0, 6),
-          missPoints: miss.slice(0, 5),
-          feedback:
-            finalScore >= maxScore * 0.8
-              ? "概念界定清晰准确，论点结构完整，术语使用规范，较好切中了北大文科考研核心采分点。"
-              : "已具备基本答题框架，但对文论源流、代表性原典论据及学术史影响的展开仍有待加强。",
-        };
-      }
-
-      resPanel.innerHTML = `
-        <div class="ai-score-title">🎯 预估得分：${result.score} / ${result.maxScore} 分</div>
-        <div class="ai-score-row"><strong class="ok-tag">✅ 命中要点：</strong> ${escapeHtml(result.hitPoints.join("、") || "已表达基础主旨")}</div>
-        <div class="ai-score-row"><strong class="miss-tag">❌ 建议补充：</strong> ${escapeHtml(result.missPoints.join("、") || "要点覆盖良好")}</div>
-        <div class="ai-feedback-box"><strong>💡 阅卷指导建议：</strong> ${escapeHtml(result.feedback)}</div>
-      `;
-    } catch (err) {
-      showToast("AI 服务请求异常，已切换为本地快速阅卷分析");
-      resPanel.innerHTML = `<p style="color:var(--wrong);">批改服务响应超时，已完成本地要点分析。</p>`;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "🤖 AI 智能批改打分";
-    }
+      '<p class="muted-loading">🤖 AI 批改服务升级中，暂不可用，敬请期待。</p>';
   }
-
   // 微信联系弹窗：显示与关闭
   function openWechatModal() {
     const overlay = $("#wechat-modal-overlay");
@@ -732,7 +620,7 @@
           saveSet(STORAGE_KEYS.favorites, state.favIds);
           if (state.currentView === "fav") renderFavView();
         } else if (action === "ai-grade") {
-          handleAIGrading(qid, actionBtn);
+          handleAIGrading(qid);
         }
         return;
       }
