@@ -138,6 +138,9 @@
         "已登录用户";
       els.currentAccountName.textContent = name;
     }
+    window.dispatchEvent(
+      new CustomEvent("pku:auth-ready", { detail: { user: user || null } }),
+    );
   }
 
   // ------------------------------------------------------------------
@@ -247,6 +250,36 @@
     // 表单内的账号/密码输入框按 Enter 键会被浏览器原生触发 <form> 的 submit 事件，
     // 已由上面的 submit 监听处理，此处无需额外绑定 keydown，避免重复提交。
   }
+
+  // 仅向业务脚本暴露必要能力。账号密码和 CloudBase 内部对象均不外泄。
+  async function getAccessToken() {
+    if (!auth) return null;
+    var res = await auth.getSession();
+    var session = res && res.data && res.data.session;
+    return (session && session.access_token) || null;
+  }
+
+  async function callCloudFunction(name, data) {
+    if (!app) throw new Error("CloudBase 尚未初始化");
+    return app.callFunction({ name: name, data: data || {} });
+  }
+
+  async function handleUnauthorized() {
+    if (auth) {
+      try {
+        await auth.signOut();
+      } catch (err) {
+        // 即使网络异常也回到登录页，避免继续展示受保护内容。
+      }
+    }
+    showLoginScreen();
+  }
+
+  window.cloudbaseServices = {
+    getAccessToken: getAccessToken,
+    callFunction: callCloudFunction,
+    handleUnauthorized: handleUnauthorized,
+  };
 
   // ------------------------------------------------------------------
   // 8. 初始化入口

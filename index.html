@@ -97,6 +97,9 @@
       <!-- 1.5 登录状态栏：当前账号 / 退出登录 -->
       <div class="auth-status-bar">
         <div class="auth-status-inner">
+          <span id="ai-quota-badge" class="ai-quota-badge" aria-live="polite"
+            >AI额度：查询中</span
+          >
           <span class="auth-status-account"
             >当前账号：<strong id="current-account-name">-</strong></span
           >
@@ -347,7 +350,9 @@
             添加微信交流 / 获取真题解析与辅导
           </h3>
           <img class="modal-qrcode" src="./wechat.png" alt="开发者微信二维码" />
-          <p class="modal-tip">添加开发者微信才可获取AI批改功能。</p>
+          <p class="modal-tip">
+            添加开发者微信可获取账号、AI 批改充值与使用帮助。
+          </p>
           <button
             type="button"
             class="btn btn-primary modal-ok"

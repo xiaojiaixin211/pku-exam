@@ -49,6 +49,7 @@
     catSubject: "all",
     catType: "all",
     searchKeyword: "",
+    aiInFlight: new Set(),
   };
 
   // 3. 工具函数
@@ -213,7 +214,7 @@
           <label class="answer-label">✍️ 考生作答 / 论述提纲：</label>
           <textarea class="card-answer-input" rows="4" placeholder="在此输入你的论述提纲、核心名词界定或原典论据..." data-qid="${escapeHtml(q.id)}">${escapeHtml(savedAnswer)}</textarea>
           <div class="ai-ctrl-bar">
-            <button class="btn btn-ghost" data-action="ai-grade" data-qid="${escapeHtml(q.id)}" title="AI 批改服务升级中，暂不可用">🤖 AI批改服务升级中</button>
+            <button class="btn btn-ghost" data-action="ai-grade" data-qid="${escapeHtml(q.id)}" title="提交当前作答进行 AI 智能批改">🤖 AI智能批改</button>
             <span class="muted-tip">作答内容实时保存于本地</span>
           </div>
           <div class="ai-result-box" id="ai-res-${escapeHtml(q.id)}" style="display:none;"></div>
@@ -484,15 +485,151 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // 8. AI 批改引擎
-  // 说明：AI 批改服务正在升级中，前端不再直接请求任何第三方大模型接口，
-  // 点击按钮仅展示"服务升级中"提示，不会发起任何网络请求。
-  function handleAIGrading(qid) {
+  // 8. AI 批改与额度显示
+  const AI_ADMIN_WECHAT = "Xiao3297651464";
+
+  function createRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function unwrapCloudFunctionResult(response) {
+    const value = response && Object.prototype.hasOwnProperty.call(response, "result")
+      ? response.result
+      : response;
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch (err) {
+        return { success: false, code: "INVALID_RESPONSE", message: "服务返回格式异常" };
+      }
+    }
+    return value || { success: false, code: "EMPTY_RESPONSE", message: "服务未返回结果" };
+  }
+
+  function renderQuotaBadge(quota) {
+    const badge = $("#ai-quota-badge");
+    if (!badge) return;
+    if (!quota) {
+      badge.textContent = "AI额度：暂不可用";
+    } else if (quota.isUnlimited) {
+      badge.textContent = `AI额度：永久使用 · 已批改 ${Number(quota.totalUsed || 0)} 次`;
+    } else {
+      badge.textContent = `AI额度：剩余 ${Number(quota.remainingCount || 0)} 次`;
+    }
+  }
+
+  async function callAIReview(payload) {
+    const services = window.cloudbaseServices;
+    if (!services) throw new Error("登录服务尚未就绪");
+    const accessToken = await services.getAccessToken();
+    if (!accessToken) {
+      await services.handleUnauthorized();
+      throw new Error("登录状态已失效，请重新登录");
+    }
+    const response = await services.callCloudFunction("ai-review", {
+      ...payload,
+      accessToken,
+    });
+    return unwrapCloudFunctionResult(response);
+  }
+
+  async function refreshQuotaBadge() {
+    try {
+      const result = await callAIReview({ action: "status" });
+      if (result.success) renderQuotaBadge(result.quota);
+      else if (result.code === "UNAUTHORIZED") {
+        await window.cloudbaseServices.handleUnauthorized();
+      } else {
+        renderQuotaBadge(null);
+      }
+    } catch (err) {
+      renderQuotaBadge(null);
+    }
+  }
+
+  function quotaEmptyHtml() {
+    return `
+      <div class="ai-quota-empty">
+        <h4>AI批改次数已用完</h4>
+        <p>10元可增加30次，100元可永久使用</p>
+        <p>请添加管理员微信：<strong>${escapeHtml(AI_ADMIN_WECHAT)}</strong></p>
+        <button class="btn btn-primary" data-action="copy-ai-wechat">复制微信号</button>
+      </div>`;
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+
+  async function handleAIGrading(qid, actionBtn) {
     const resPanel = $(`#ai-res-${qid}`);
-    if (!resPanel) return;
+    const question = state.allQuestions.find((item) => item.id === qid);
+    const userAnswer = String(state.userAnswers[qid] || "").trim();
+    if (!resPanel || !question || state.aiInFlight.has(qid)) return;
     resPanel.style.display = "block";
-    resPanel.innerHTML =
-      '<p class="muted-loading">🤖 AI 批改服务升级中，暂不可用，敬请期待。</p>';
+
+    if (userAnswer.length < 10) {
+      resPanel.innerHTML = '<p class="ai-error-text">请先输入至少 10 个字的作答内容。</p>';
+      return;
+    }
+
+    state.aiInFlight.add(qid);
+    if (actionBtn) {
+      actionBtn.disabled = true;
+      actionBtn.textContent = "批改中...";
+    }
+    resPanel.innerHTML = '<p class="muted-loading">🤖 正在分析作答，请稍候...</p>';
+
+    try {
+      const result = await callAIReview({
+        action: "review",
+        requestId: createRequestId(),
+        questionId: String(question.id),
+        question: String(question.title || ""),
+        referenceAnswer: String(question.answer || ""),
+        userAnswer,
+      });
+
+      if (result.code === "UNAUTHORIZED") {
+        await window.cloudbaseServices.handleUnauthorized();
+        return;
+      }
+      if (result.code === "QUOTA_EXHAUSTED") {
+        resPanel.innerHTML = quotaEmptyHtml();
+        renderQuotaBadge(result.quota);
+        return;
+      }
+      if (!result.success) {
+        throw new Error(result.message || "AI 批改失败，请稍后重试");
+      }
+
+      renderQuotaBadge(result.quota);
+      resPanel.innerHTML = `
+        <div class="ai-score-title">AI 智能批改结果</div>
+        <div class="ai-result-content">${escapeHtml(result.review || "暂无批改内容")}</div>`;
+    } catch (err) {
+      resPanel.innerHTML = `<p class="ai-error-text">${escapeHtml(err && err.message ? err.message : "AI 批改失败，请稍后重试")}</p>`;
+    } finally {
+      state.aiInFlight.delete(qid);
+      if (actionBtn) {
+        actionBtn.disabled = false;
+        actionBtn.textContent = "🤖 AI智能批改";
+      }
+    }
   }
   // 微信联系弹窗：显示与关闭
   function openWechatModal() {
@@ -620,7 +757,11 @@
           saveSet(STORAGE_KEYS.favorites, state.favIds);
           if (state.currentView === "fav") renderFavView();
         } else if (action === "ai-grade") {
-          handleAIGrading(qid);
+          handleAIGrading(qid, actionBtn);
+        } else if (action === "copy-ai-wechat") {
+          copyText(AI_ADMIN_WECHAT)
+            .then(() => showToast("管理员微信号已复制"))
+            .catch(() => showToast(`请手动复制：${AI_ADMIN_WECHAT}`));
         }
         return;
       }
@@ -699,6 +840,8 @@
       .filter(Boolean);
 
     bindGlobalEvents();
+
+    window.addEventListener("pku:auth-ready", refreshQuotaBadge);
 
     // 【修复点】：自动优先读取根目录下的 questions.json
     let loaded = null;

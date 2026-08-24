@@ -1302,6 +1302,43 @@ textarea {
   font-weight: 700;
 }
 
+.ai-quota-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid rgba(201, 169, 110, 0.75);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pku-gold);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-result-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.75;
+}
+
+.ai-quota-empty {
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.ai-quota-empty h4 {
+  color: var(--pku-red);
+  margin-bottom: 8px;
+}
+
+.ai-quota-empty .btn {
+  margin-top: 10px;
+}
+
+.ai-error-text {
+  color: var(--wrong);
+}
+
 .auth-logout-btn {
   padding: 4px 14px;
   font-size: 12.5px;
